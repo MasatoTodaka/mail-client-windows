@@ -1,0 +1,48 @@
+<Window
+    x:Class="MailClient.App.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Title="Mail Client">
+
+    <!--
+        M0: static 3-pane placeholder shell (sidebar / message list / reading pane), matching
+        macOS Mail's fixed layout proportions. Real content, GridSplitter-based resizing, and
+        data binding land in M3-M5 as the sidebar/list/reading-pane view models get real data.
+    -->
+    <Grid x:Name="RootGrid">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="220" />
+            <ColumnDefinition Width="320" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <Border Grid.Column="0" BorderThickness="0,0,1,0" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+            <TextBlock
+                Margin="16"
+                VerticalAlignment="Top"
+                TextWrapping="Wrap"
+                Text="{x:Bind ViewModel.SidebarPlaceholderText}"
+                Style="{StaticResource BodyTextBlockStyle}" />
+        </Border>
+
+        <Border Grid.Column="1" BorderThickness="0,0,1,0" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+            <TextBlock
+                Margin="16"
+                VerticalAlignment="Top"
+                TextWrapping="Wrap"
+                Text="{x:Bind ViewModel.MessageListPlaceholderText}"
+                Style="{StaticResource BodyTextBlockStyle}" />
+        </Border>
+
+        <TextBlock
+            Grid.Column="2"
+            Margin="16"
+            VerticalAlignment="Top"
+            TextWrapping="Wrap"
+            Text="{x:Bind ViewModel.ReadingPanePlaceholderText}"
+            Style="{StaticResource BodyTextBlockStyle}" />
+    </Grid>
+</Window>
