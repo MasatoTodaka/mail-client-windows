@@ -5,11 +5,13 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:model="using:MailClient.Core.Models"
+    xmlns:abstractions="using:MailClient.Core.Abstractions"
     xmlns:converters="using:MailClient.App.Views.Converters"
     mc:Ignorable="d">
 
     <UserControl.Resources>
         <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
         <converters:BoolToFontWeightConverter x:Key="BoolToFontWeightConverter" />
         <converters:DateTimeOffsetToShortStringConverter x:Key="DateTimeOffsetToShortStringConverter" />
     </UserControl.Resources>
@@ -20,13 +22,29 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0" Margin="16,16,16,8" Spacing="4">
-            <TextBlock Text="{x:Bind ViewModel.FolderDisplayName, Mode=OneWay}" Style="{ThemeResource SubtitleTextBlockStyle}" />
+        <StackPanel Grid.Row="0" Margin="16,16,16,8" Spacing="8">
+            <AutoSuggestBox
+                PlaceholderText="すべてのフォルダを検索"
+                QueryIcon="Find"
+                Text="{x:Bind SearchViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            <TextBlock
+                Text="{x:Bind ViewModel.FolderDisplayName, Mode=OneWay}"
+                Style="{ThemeResource SubtitleTextBlockStyle}"
+                Visibility="{x:Bind FolderHeaderVisibility(SearchViewModel.IsSearchActive), Mode=OneWay}" />
+            <TextBlock
+                Text="検索結果"
+                Style="{ThemeResource SubtitleTextBlockStyle}"
+                Visibility="{x:Bind SearchViewModel.IsSearchActive, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
             <TextBlock
                 Text="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}"
                 Foreground="{ThemeResource SystemFillColorCriticalBrush}"
                 TextWrapping="Wrap"
                 Visibility="{x:Bind ViewModel.ErrorMessage, Mode=OneWay, Converter={StaticResource StringToVisibilityConverter}}" />
+            <TextBlock
+                Text="{x:Bind SearchViewModel.ErrorMessage, Mode=OneWay}"
+                Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                TextWrapping="Wrap"
+                Visibility="{x:Bind SearchViewModel.ErrorMessage, Mode=OneWay, Converter={StaticResource StringToVisibilityConverter}}" />
             <ProgressRing IsActive="{x:Bind ViewModel.IsBusy, Mode=OneWay}" HorizontalAlignment="Left" Width="16" Height="16" />
         </StackPanel>
 
@@ -34,7 +52,8 @@
             Grid.Row="1"
             ItemsSource="{x:Bind ViewModel.Messages}"
             SelectionMode="Single"
-            SelectionChanged="OnMessageSelectionChanged">
+            SelectionChanged="OnMessageSelectionChanged"
+            Visibility="{x:Bind FolderHeaderVisibility(SearchViewModel.IsSearchActive), Mode=OneWay}">
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="model:MailMessage">
                     <Grid Padding="16,8" ColumnSpacing="12">
@@ -55,6 +74,41 @@
                         <TextBlock
                             Grid.Column="1"
                             Text="{x:Bind Date, Converter={StaticResource DateTimeOffsetToShortStringConverter}}"
+                            Opacity="0.6"
+                            VerticalAlignment="Top" />
+                    </Grid>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+
+        <ListView
+            Grid.Row="1"
+            ItemsSource="{x:Bind SearchViewModel.Results}"
+            SelectionMode="Single"
+            SelectionChanged="OnSearchResultSelectionChanged"
+            Visibility="{x:Bind SearchViewModel.IsSearchActive, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+            <ListView.ItemTemplate>
+                <DataTemplate x:DataType="abstractions:SearchResult">
+                    <Grid Padding="16,8" ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="{x:Bind Message.FromDisplay}" />
+                            <TextBlock
+                                Text="{x:Bind Message.Subject}"
+                                Opacity="0.8"
+                                TextTrimming="CharacterEllipsis" />
+                            <TextBlock
+                                Text="{x:Bind Snippet}"
+                                Opacity="0.6"
+                                FontSize="12"
+                                TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                        <TextBlock
+                            Grid.Column="1"
+                            Text="{x:Bind Message.Date, Converter={StaticResource DateTimeOffsetToShortStringConverter}}"
                             Opacity="0.6"
                             VerticalAlignment="Top" />
                     </Grid>

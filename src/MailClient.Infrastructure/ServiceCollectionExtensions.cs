@@ -2,11 +2,13 @@ using MailClient.Core;
 using MailClient.Core.Abstractions;
 using MailClient.Data;
 using MailClient.Data.Repositories;
+using MailClient.Data.Search;
 using MailClient.Mail.Imap;
 using MailClient.Mail.Smtp;
 using MailClient.Mail.Sync;
 using MailClient.ViewModels.AccountSetup;
 using MailClient.ViewModels.Compose;
+using MailClient.ViewModels.Search;
 using MailClient.ViewModels.Shell;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -33,6 +35,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IOutboxStore, OutboxRepository>();
         services.AddSingleton<IOutboxProcessor, OutboxProcessor>();
         services.AddSingleton<ISmtpSender, SmtpSender>();
+        services.AddSingleton<ISearchIndex, FtsSearchIndex>();
 
         // IImapAccountClient wraps one connection, not shared state — resolve a fresh instance
         // per account via this factory rather than injecting the interface directly.
@@ -45,6 +48,7 @@ public static class ServiceCollectionExtensions
         services.AddTransient<MessageListViewModel>();
         services.AddTransient<ReadingPaneViewModel>();
         services.AddTransient<ComposeViewModel>();
+        services.AddTransient<SearchViewModel>();
 
         // ICredentialStore / INotificationService are Windows-only; registered by MailClient.App itself.
 
