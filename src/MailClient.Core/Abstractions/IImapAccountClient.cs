@@ -3,7 +3,8 @@ using MailClient.Core.Models;
 namespace MailClient.Core.Abstractions;
 
 // Wraps a single account's IMAP connection (implemented over MailKit in MailClient.Mail).
-public interface IImapAccountClient
+// One instance per connection attempt — resolve a fresh instance per account, don't share.
+public interface IImapAccountClient : IDisposable
 {
     Task ConnectAsync(Account account, string password, CancellationToken ct);
     Task DisconnectAsync();

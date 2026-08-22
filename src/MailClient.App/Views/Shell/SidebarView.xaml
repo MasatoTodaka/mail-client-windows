@@ -1,0 +1,59 @@
+<UserControl
+    x:Class="MailClient.App.Views.Shell.SidebarView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:shell="using:MailClient.ViewModels.Shell"
+    xmlns:model="using:MailClient.Core.Models"
+    xmlns:converters="using:MailClient.App.Views.Converters"
+    mc:Ignorable="d">
+
+    <UserControl.Resources>
+        <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Button
+            Grid.Row="0"
+            Margin="0,0,0,12"
+            HorizontalAlignment="Stretch"
+            Content="アカウントを追加"
+            Click="OnAddAccountClick" />
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <ItemsControl ItemsSource="{x:Bind ViewModel.Accounts}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="shell:AccountNode">
+                        <StackPanel Margin="0,0,0,16">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Text="{x:Bind DisplayName}" Style="{ThemeResource BodyStrongTextBlockStyle}" />
+                                <ProgressRing IsActive="{x:Bind IsConnecting, Mode=OneWay}" Width="14" Height="14" />
+                            </StackPanel>
+
+                            <TextBlock
+                                Text="{x:Bind ErrorMessage, Mode=OneWay}"
+                                Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                                TextWrapping="Wrap"
+                                Margin="0,4,0,0"
+                                Visibility="{x:Bind ErrorMessage, Mode=OneWay, Converter={StaticResource StringToVisibilityConverter}}" />
+
+                            <ItemsControl ItemsSource="{x:Bind Folders}" Margin="12,4,0,0">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="model:MailFolder">
+                                        <TextBlock Text="{x:Bind DisplayName}" Margin="0,2,0,2" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

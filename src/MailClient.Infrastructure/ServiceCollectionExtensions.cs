@@ -1,6 +1,7 @@
 using MailClient.Core.Abstractions;
 using MailClient.Data;
 using MailClient.Data.Repositories;
+using MailClient.Mail.Imap;
 using MailClient.ViewModels.AccountSetup;
 using MailClient.ViewModels.Shell;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,12 +22,19 @@ public static class ServiceCollectionExtensions
             return new MailDbContext(Path.Combine(dataDir, "mailclient.db"));
         });
         services.AddSingleton<IAccountStore, AccountRepository>();
+        services.AddSingleton<IFolderStore, FolderRepository>();
+
+        // IImapAccountClient wraps one connection, not shared state — resolve a fresh instance
+        // per account via this factory rather than injecting the interface directly.
+        services.AddTransient<IImapAccountClient, ImapAccountClient>();
+        services.AddSingleton<Func<IImapAccountClient>>(sp => () => sp.GetRequiredService<IImapAccountClient>());
 
         services.AddTransient<MainViewModel>();
         services.AddTransient<AddAccountViewModel>();
+        services.AddTransient<SidebarViewModel>();
 
-        // M3+: IFolderStore / IMessageStore / IOutboxStore -> MailClient.Data repositories
-        // M3+: IImapAccountClient / ISmtpSender / IMailSyncService -> MailClient.Mail implementations
+        // M4+: IMessageStore / IOutboxStore -> MailClient.Data repositories
+        // M4+: ISmtpSender / IMailSyncService -> MailClient.Mail implementations
         // ICredentialStore / INotificationService are Windows-only; registered by MailClient.App itself.
 
         return services;
