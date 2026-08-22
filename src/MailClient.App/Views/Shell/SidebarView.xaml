@@ -39,7 +39,10 @@
             <Button Content="設定を開く" Click="OnSettingsClick" HorizontalAlignment="Center" Margin="0,4,0,0" />
         </StackPanel>
 
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer
+            Grid.Row="1"
+            VerticalScrollBarVisibility="Auto"
+            Visibility="{x:Bind AccountListVisibility(ViewModel.Accounts.Count), Mode=OneWay}">
             <ItemsControl ItemsSource="{x:Bind ViewModel.Accounts}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="shell:AccountNode">

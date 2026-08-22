@@ -51,4 +51,7 @@ public sealed partial class SidebarView : UserControl
 
     private Visibility EmptyStateVisibility(int accountCount) =>
         accountCount == 0 ? Visibility.Visible : Visibility.Collapsed;
+
+    private Visibility AccountListVisibility(int accountCount) =>
+        accountCount == 0 ? Visibility.Collapsed : Visibility.Visible;
 }
