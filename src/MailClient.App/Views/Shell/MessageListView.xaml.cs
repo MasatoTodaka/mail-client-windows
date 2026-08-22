@@ -1,3 +1,4 @@
+using MailClient.Core.Models;
 using MailClient.ViewModels.Shell;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml.Controls;
@@ -12,5 +13,11 @@ public sealed partial class MessageListView : UserControl
     {
         ViewModel = App.Services.GetRequiredService<MessageListViewModel>();
         InitializeComponent();
+    }
+
+    private void OnMessageSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (e.AddedItems.FirstOrDefault() is MailMessage message)
+            ViewModel.SelectMessageCommand.Execute(message);
     }
 }

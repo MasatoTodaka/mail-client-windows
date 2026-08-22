@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
+    <PackageReference Include="HtmlAgilityPack" Version="1.12.4" />
   </ItemGroup>
 
   <ItemGroup>

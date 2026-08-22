@@ -30,7 +30,11 @@
             <ProgressRing IsActive="{x:Bind ViewModel.IsBusy, Mode=OneWay}" HorizontalAlignment="Left" Width="16" Height="16" />
         </StackPanel>
 
-        <ListView Grid.Row="1" ItemsSource="{x:Bind ViewModel.Messages}">
+        <ListView
+            Grid.Row="1"
+            ItemsSource="{x:Bind ViewModel.Messages}"
+            SelectionMode="Single"
+            SelectionChanged="OnMessageSelectionChanged">
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="model:MailMessage">
                     <Grid Padding="16,8" ColumnSpacing="12">

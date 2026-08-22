@@ -10,8 +10,8 @@
 
     <!--
         M0: static 3-pane placeholder shell (sidebar / message list / reading pane), matching
-        macOS Mail's fixed layout proportions. Sidebar (M3) and message list (M4) got real
-        content; reading pane lands the same way in M5.
+        macOS Mail's fixed layout proportions. All three panes now own real view models
+        (sidebar M3, message list M4, reading pane M5), composed here by code-behind.
     -->
     <Grid x:Name="RootGrid">
         <Grid.ColumnDefinitions>
@@ -28,12 +28,6 @@
             <shell:MessageListView x:Name="MessageList" />
         </Border>
 
-        <TextBlock
-            Grid.Column="2"
-            Margin="16"
-            VerticalAlignment="Top"
-            TextWrapping="Wrap"
-            Text="{x:Bind ViewModel.ReadingPanePlaceholderText}"
-            Style="{StaticResource BodyTextBlockStyle}" />
+        <shell:ReadingPaneView x:Name="ReadingPane" Grid.Column="2" />
     </Grid>
 </Window>

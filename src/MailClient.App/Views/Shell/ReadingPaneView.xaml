@@ -1,0 +1,66 @@
+<UserControl
+    x:Class="MailClient.App.Views.Shell.ReadingPaneView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:converters="using:MailClient.App.Views.Converters"
+    mc:Ignorable="d">
+
+    <UserControl.Resources>
+        <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+        <converters:DateTimeOffsetToShortStringConverter x:Key="DateTimeOffsetToShortStringConverter" />
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="16,16,16,8" Spacing="2">
+            <TextBlock
+                Text="{x:Bind ViewModel.SelectedMessage.Subject, Mode=OneWay}"
+                Style="{ThemeResource SubtitleTextBlockStyle}"
+                TextWrapping="Wrap" />
+            <TextBlock Opacity="0.8">
+                <Run Text="{x:Bind ViewModel.SelectedMessage.FromDisplay, Mode=OneWay}" />
+                <Run Text=" ・ " />
+                <Run Text="{x:Bind ViewModel.SelectedMessage.Date, Mode=OneWay, Converter={StaticResource DateTimeOffsetToShortStringConverter}}" />
+            </TextBlock>
+            <TextBlock
+                Text="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}"
+                Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                TextWrapping="Wrap"
+                Visibility="{x:Bind ViewModel.ErrorMessage, Mode=OneWay, Converter={StaticResource StringToVisibilityConverter}}" />
+            <ProgressRing IsActive="{x:Bind ViewModel.IsBusy, Mode=OneWay}" HorizontalAlignment="Left" Width="16" Height="16" />
+        </StackPanel>
+
+        <InfoBar
+            Grid.Row="1"
+            Margin="16,0,16,8"
+            IsOpen="{x:Bind ViewModel.HasBlockedRemoteImages, Mode=OneWay}"
+            Severity="Informational"
+            Title="リモート画像をブロックしました"
+            Message="プライバシー保護のため、外部サーバーの画像を読み込んでいません。">
+            <InfoBar.ActionButton>
+                <Button Content="画像を読み込む" Command="{x:Bind ViewModel.LoadRemoteImagesCommand}" />
+            </InfoBar.ActionButton>
+        </InfoBar>
+
+        <Grid Grid.Row="2">
+            <ScrollViewer Visibility="{x:Bind IsPlainTextVisible(ViewModel.IsHtml), Mode=OneWay}">
+                <TextBlock
+                    Margin="16,0,16,16"
+                    TextWrapping="Wrap"
+                    Text="{x:Bind ViewModel.PlainTextBody, Mode=OneWay}" />
+            </ScrollViewer>
+
+            <WebView2
+                x:Name="BodyWebView"
+                Visibility="{x:Bind ViewModel.IsHtml, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
+        </Grid>
+    </Grid>
+</UserControl>

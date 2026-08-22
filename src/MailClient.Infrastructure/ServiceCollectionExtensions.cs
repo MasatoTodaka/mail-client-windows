@@ -1,3 +1,4 @@
+using MailClient.Core;
 using MailClient.Core.Abstractions;
 using MailClient.Data;
 using MailClient.Data.Repositories;
@@ -20,8 +21,9 @@ public static class ServiceCollectionExtensions
         {
             var dataDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MailClient");
             Directory.CreateDirectory(dataDir);
-            return new MailDbContext(Path.Combine(dataDir, "mailclient.db"));
+            return new AppDataPaths(dataDir);
         });
+        services.AddSingleton(sp => new MailDbContext(sp.GetRequiredService<AppDataPaths>().DatabasePath));
         services.AddSingleton<IAccountStore, AccountRepository>();
         services.AddSingleton<IFolderStore, FolderRepository>();
         services.AddSingleton<IMessageStore, MessageRepository>();
@@ -36,6 +38,7 @@ public static class ServiceCollectionExtensions
         services.AddTransient<AddAccountViewModel>();
         services.AddTransient<SidebarViewModel>();
         services.AddTransient<MessageListViewModel>();
+        services.AddTransient<ReadingPaneViewModel>();
 
         // M6+: IOutboxStore -> MailClient.Data repositories
         // M7+: ISmtpSender -> MailClient.Mail implementation
