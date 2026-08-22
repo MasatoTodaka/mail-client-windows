@@ -20,18 +20,8 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <Grid Grid.Row="0" Margin="0,0,0,12" ColumnSpacing="8">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <Button Grid.Column="0" HorizontalAlignment="Stretch" Click="OnAddAccountClick">
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <FontIcon Glyph="&#xE109;" FontSize="14" />
-                    <TextBlock Text="アカウントを追加" />
-                </StackPanel>
-            </Button>
-            <Button Grid.Column="1" Click="OnSettingsClick" ToolTipService.ToolTip="設定" AutomationProperties.Name="設定">
+        <Grid Grid.Row="0" Margin="0,0,0,12" HorizontalAlignment="Right">
+            <Button Click="OnSettingsClick" ToolTipService.ToolTip="設定" AutomationProperties.Name="設定">
                 <FontIcon Glyph="&#xE713;" />
             </Button>
         </Grid>
@@ -44,7 +34,8 @@
             Margin="8,48,8,0"
             Visibility="{x:Bind EmptyStateVisibility(ViewModel.Accounts.Count), Mode=OneWay}">
             <TextBlock Text="アカウントが登録されていません" Style="{ThemeResource BodyStrongTextBlockStyle}" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" />
-            <TextBlock Text="上の「アカウントを追加」からメールアカウントを設定してください。" Opacity="0.7" TextWrapping="Wrap" TextAlignment="Center" />
+            <TextBlock Text="「設定」からメールアカウントを追加してください。" Opacity="0.7" TextWrapping="Wrap" TextAlignment="Center" />
+            <Button Content="設定を開く" Click="OnSettingsClick" HorizontalAlignment="Center" Margin="0,4,0,0" />
         </StackPanel>
 
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">

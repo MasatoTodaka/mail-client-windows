@@ -1,5 +1,7 @@
+using MailClient.App.Views.AccountSetup;
 using MailClient.App.Views.Rules;
 using MailClient.Core.Models;
+using MailClient.ViewModels.AccountSetup;
 using MailClient.ViewModels.Rules;
 using MailClient.ViewModels.Settings;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,6 +22,22 @@ public sealed partial class SettingsWindow : Window
         SystemBackdrop = new Microsoft.UI.Xaml.Media.MicaBackdrop();
 
         _ = ViewModel.LoadCommand.ExecuteAsync(null);
+    }
+
+    private async void OnAddAccountClick(object sender, RoutedEventArgs e)
+    {
+        var dialogViewModel = App.Services.GetRequiredService<AddAccountViewModel>();
+        var dialog = new AddAccountDialog(dialogViewModel)
+        {
+            XamlRoot = Content.XamlRoot,
+        };
+
+        var result = await dialog.ShowAsync();
+        if (result == ContentDialogResult.Primary)
+        {
+            await ViewModel.LoadCommand.ExecuteAsync(null);
+            ViewModel.NotifyAccountAdded();
+        }
     }
 
     private async void OnDeleteAccountClick(object sender, RoutedEventArgs e)

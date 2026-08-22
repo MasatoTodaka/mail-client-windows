@@ -20,6 +20,12 @@
             <ToggleSwitch Header="ワンタイムパスワードを自動でクリップボードにコピーする" IsOn="{x:Bind ViewModel.OtpAutoCopyEnabled, Mode=TwoWay}" />
 
             <TextBlock Text="アカウント" Style="{ThemeResource SubtitleTextBlockStyle}" Margin="0,16,0,0" />
+            <Button Click="OnAddAccountClick" HorizontalAlignment="Left" AutomationProperties.Name="アカウントを追加">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE109;" FontSize="14" />
+                    <TextBlock Text="アカウントを追加" />
+                </StackPanel>
+            </Button>
             <ItemsControl ItemsSource="{x:Bind ViewModel.Accounts}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="model:Account">

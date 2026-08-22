@@ -28,6 +28,11 @@ public sealed partial class SettingsViewModel(
     // Raised after an account is deleted, so the sidebar can drop it without a full window reopen.
     public event EventHandler<Guid>? AccountDeleted;
 
+    // Raised after an account is added via the dialog, so the sidebar can pick it up without a full window reopen.
+    public event EventHandler? AccountAdded;
+
+    public void NotifyAccountAdded() => AccountAdded?.Invoke(this, EventArgs.Empty);
+
     [RelayCommand]
     public async Task LoadAsync()
     {

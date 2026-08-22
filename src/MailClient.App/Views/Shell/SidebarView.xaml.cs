@@ -1,7 +1,5 @@
-using MailClient.App.Views.AccountSetup;
 using MailClient.App.Views.Settings;
 using MailClient.Core.Models;
-using MailClient.ViewModels.AccountSetup;
 using MailClient.ViewModels.Settings;
 using MailClient.ViewModels.Shell;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,19 +18,6 @@ public sealed partial class SidebarView : UserControl
         InitializeComponent();
 
         Loaded += async (_, _) => await ViewModel.LoadCommand.ExecuteAsync(null);
-    }
-
-    private async void OnAddAccountClick(object sender, RoutedEventArgs e)
-    {
-        var dialogViewModel = App.Services.GetRequiredService<AddAccountViewModel>();
-        var dialog = new AddAccountDialog(dialogViewModel)
-        {
-            XamlRoot = XamlRoot,
-        };
-
-        var result = await dialog.ShowAsync();
-        if (result == ContentDialogResult.Primary)
-            await ViewModel.LoadCommand.ExecuteAsync(null);
     }
 
     private void OnFolderSelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -60,6 +45,7 @@ public sealed partial class SidebarView : UserControl
         var settingsViewModel = App.Services.GetRequiredService<SettingsViewModel>();
         var settingsWindow = new SettingsWindow(settingsViewModel);
         settingsViewModel.AccountDeleted += async (_, _) => await ViewModel.LoadCommand.ExecuteAsync(null);
+        settingsViewModel.AccountAdded += async (_, _) => await ViewModel.LoadCommand.ExecuteAsync(null);
         settingsWindow.Activate();
     }
 

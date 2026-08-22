@@ -12,6 +12,7 @@
     <UserControl.Resources>
         <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
         <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+        <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter" />
         <converters:BoolToFontWeightConverter x:Key="BoolToFontWeightConverter" />
         <converters:DateTimeOffsetToShortStringConverter x:Key="DateTimeOffsetToShortStringConverter" />
     </UserControl.Resources>
@@ -63,26 +64,53 @@
             </ListView.Footer>
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="model:MailMessage">
-                    <Grid Padding="16,8" ColumnSpacing="12" AutomationProperties.Name="{x:Bind Subject}">
+                    <Grid Padding="16,10" ColumnSpacing="10" AutomationProperties.Name="{x:Bind Subject}">
                         <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="16" />
                             <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <StackPanel Grid.Column="0">
-                            <TextBlock
-                                Text="{x:Bind FromDisplay}"
-                                FontWeight="{x:Bind IsRead, Converter={StaticResource BoolToFontWeightConverter}}" />
+                        <Ellipse
+                            Grid.Column="0"
+                            Width="8"
+                            Height="8"
+                            VerticalAlignment="Top"
+                            Margin="0,5,0,0"
+                            Fill="{ThemeResource AccentFillColorDefaultBrush}"
+                            Visibility="{x:Bind IsRead, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
+                        <StackPanel Grid.Column="1" Spacing="2">
+                            <Grid ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock
+                                    Grid.Column="0"
+                                    Text="{x:Bind FromDisplay}"
+                                    FontWeight="{x:Bind IsRead, Converter={StaticResource BoolToFontWeightConverter}}"
+                                    TextTrimming="CharacterEllipsis" />
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                    <FontIcon
+                                        Glyph="&#xE129;"
+                                        FontSize="12"
+                                        Foreground="{ThemeResource SystemFillColorCautionBrush}"
+                                        Visibility="{x:Bind IsFlagged, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                    <FontIcon
+                                        Glyph="&#xE723;"
+                                        FontSize="12"
+                                        Opacity="0.6"
+                                        Visibility="{x:Bind HasAttachments, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                    <TextBlock
+                                        Text="{x:Bind Date, Converter={StaticResource DateTimeOffsetToShortStringConverter}}"
+                                        Opacity="0.6"
+                                        FontSize="12" />
+                                </StackPanel>
+                            </Grid>
                             <TextBlock
                                 Text="{x:Bind Subject}"
                                 FontWeight="{x:Bind IsRead, Converter={StaticResource BoolToFontWeightConverter}}"
                                 Opacity="0.8"
                                 TextTrimming="CharacterEllipsis" />
                         </StackPanel>
-                        <TextBlock
-                            Grid.Column="1"
-                            Text="{x:Bind Date, Converter={StaticResource DateTimeOffsetToShortStringConverter}}"
-                            Opacity="0.6"
-                            VerticalAlignment="Top" />
                     </Grid>
                 </DataTemplate>
             </ListView.ItemTemplate>
