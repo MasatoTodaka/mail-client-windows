@@ -1,6 +1,7 @@
 using System.Globalization;
 using MailClient.Core.Abstractions;
 using MailClient.Core.Models;
+using MailClient.Core.Text;
 using Microsoft.Data.Sqlite;
 
 namespace MailClient.Data.Repositories;
@@ -77,6 +78,43 @@ public sealed class MessageRepository(MailDbContext db) : IMessageStore
         var total = (int)reader.GetInt64(0);
         var unread = reader.IsDBNull(1) ? 0 : (int)reader.GetInt64(1);
         return (total, unread);
+    }
+
+    public async Task<int> FixMojibakeSubjectsAsync(CancellationToken ct)
+    {
+        var toFix = new List<(string Id, string Subject)>();
+
+        await using (var connection = db.CreateConnection())
+        {
+            await connection.OpenAsync(ct);
+            await using var command = connection.CreateCommand();
+            command.CommandText = "SELECT id, subject FROM messages;";
+            await using var reader = await command.ExecuteReaderAsync(ct);
+            while (await reader.ReadAsync(ct))
+            {
+                var id = reader.GetString(0);
+                var subject = reader.GetString(1);
+                var fixedSubject = SubjectCharsetFixer.Fix(subject);
+                if (fixedSubject != subject)
+                    toFix.Add((id, fixedSubject));
+            }
+        }
+
+        if (toFix.Count == 0)
+            return 0;
+
+        await using var updateConnection = db.CreateConnection();
+        await updateConnection.OpenAsync(ct);
+        foreach (var (id, fixedSubject) in toFix)
+        {
+            await using var command = updateConnection.CreateCommand();
+            command.CommandText = "UPDATE messages SET subject = $subject WHERE id = $id;";
+            command.Parameters.AddWithValue("$subject", fixedSubject);
+            command.Parameters.AddWithValue("$id", id);
+            await command.ExecuteNonQueryAsync(ct);
+        }
+
+        return toFix.Count;
     }
 
     public async Task SaveAsync(MailMessage message, CancellationToken ct)

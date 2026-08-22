@@ -45,7 +45,7 @@
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="shell:AccountNode">
                         <StackPanel Margin="0,0,0,16">
-                            <Grid ColumnSpacing="6">
+                            <Grid ColumnSpacing="6" AutomationProperties.Name="{x:Bind DisplayName}">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="Auto" />
@@ -84,7 +84,7 @@
                                 SelectionChanged="OnFolderSelectionChanged">
                                 <ListView.ItemTemplate>
                                     <DataTemplate x:DataType="model:MailFolder">
-                                        <Grid ColumnSpacing="6">
+                                        <Grid ColumnSpacing="6" AutomationProperties.Name="{x:Bind DisplayName}">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />

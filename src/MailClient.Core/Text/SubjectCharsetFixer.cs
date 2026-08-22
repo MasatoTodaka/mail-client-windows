@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace MailClient.Mail.Imap;
+namespace MailClient.Core.Text;
 
 // Some senders (seen from Japanese financial institutions) put raw ISO-2022-JP bytes directly in
 // the Subject header without RFC 2047 encoded-word wrapping (no `=?ISO-2022-JP?B?...?=`). Since
@@ -9,7 +9,10 @@ namespace MailClient.Mail.Imap;
 // sequences included, instead of decoding them. MimeKit's ParserOptions.CharsetEncoding fallback
 // only kicks in when UTF-8 decoding fails, so it can't help here; this re-derives the original
 // bytes from the (mis-)decoded string and re-decodes them as ISO-2022-JP instead.
-internal static class SubjectCharsetFixer
+//
+// Lives in Core (not Mail) so MailClient.Data can also run it as a one-time local backfill over
+// subjects that were cached before this fix existed, without a Data -> Mail dependency.
+public static class SubjectCharsetFixer
 {
     // ESC -- ISO-2022-JP's shift-sequence lead byte. It should never legitimately appear in a
     // decoded subject, so its presence is a reliable signal that decoding went wrong.

@@ -44,6 +44,18 @@ public partial class App : Application
     {
         await Services.GetRequiredService<MailDbContext>().MigrateAsync();
 
+        // One-time local cleanup: re-decode any subject cached before SubjectCharsetFixer
+        // existed. Local-only and idempotent (no-ops once everything's already fixed), so it's
+        // safe to just run on every launch rather than tracking whether it's needed.
+        try
+        {
+            await Services.GetRequiredService<IMessageStore>().FixMojibakeSubjectsAsync(CancellationToken.None);
+        }
+        catch
+        {
+            // Best-effort cleanup; must not block startup.
+        }
+
         _mainWindow = new MainWindow();
         _mainWindow.Activate();
 

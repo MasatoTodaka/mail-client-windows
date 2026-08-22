@@ -1,5 +1,6 @@
 using MailClient.Core.Abstractions;
 using MailClient.Core.Models;
+using MailClient.Core.Text;
 using MailKit;
 using MailKit.Net.Imap;
 using MailKit.Security;

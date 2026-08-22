@@ -63,7 +63,7 @@
             </ListView.Footer>
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="model:MailMessage">
-                    <Grid Padding="16,8" ColumnSpacing="12">
+                    <Grid Padding="16,8" ColumnSpacing="12" AutomationProperties.Name="{x:Bind Subject}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
@@ -96,7 +96,7 @@
             Visibility="{x:Bind SearchViewModel.IsSearchActive, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="abstractions:SearchResult">
-                    <Grid Padding="16,8" ColumnSpacing="12">
+                    <Grid Padding="16,8" ColumnSpacing="12" AutomationProperties.Name="{x:Bind Message.Subject}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
