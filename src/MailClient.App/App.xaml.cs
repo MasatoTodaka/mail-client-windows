@@ -1,4 +1,7 @@
+using MailClient.Core.Abstractions;
+using MailClient.Data;
 using MailClient.Infrastructure;
+using MailClient.Platform;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Xaml;
@@ -23,15 +26,18 @@ public partial class App : Application
 
                 // Windows-only services are registered here, not in MailClient.Infrastructure,
                 // because only this project (net8.0-windows) can see MailClient.Platform.
-                // Wired up starting M2 (ICredentialStore) and M10 (INotificationService).
+                services.AddSingleton<ICredentialStore, CredentialLockerStore>();
+                // M10: INotificationService -> AppNotificationService
             })
             .Build();
 
         Services = _host.Services;
     }
 
-    protected override void OnLaunched(LaunchActivatedEventArgs args)
+    protected override async void OnLaunched(LaunchActivatedEventArgs args)
     {
+        await Services.GetRequiredService<MailDbContext>().MigrateAsync();
+
         _mainWindow = new MainWindow();
         _mainWindow.Activate();
     }

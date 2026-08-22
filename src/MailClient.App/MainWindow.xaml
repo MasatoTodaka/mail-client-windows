@@ -20,12 +20,33 @@
         </Grid.ColumnDefinitions>
 
         <Border Grid.Column="0" BorderThickness="0,0,1,0" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
-            <TextBlock
-                Margin="16"
-                VerticalAlignment="Top"
-                TextWrapping="Wrap"
-                Text="{x:Bind ViewModel.SidebarPlaceholderText}"
-                Style="{StaticResource BodyTextBlockStyle}" />
+            <Grid Margin="16">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <TextBlock
+                    Grid.Row="0"
+                    TextWrapping="Wrap"
+                    Text="{x:Bind ViewModel.SidebarPlaceholderText}"
+                    Style="{StaticResource BodyTextBlockStyle}" />
+
+                <!-- M2 dev-verification entry point; superseded by the real sidebar in M3. -->
+                <Button
+                    Grid.Row="1"
+                    Margin="0,12,0,0"
+                    HorizontalAlignment="Stretch"
+                    Content="アカウントを追加"
+                    Click="OnAddAccountClick" />
+
+                <ListView
+                    Grid.Row="2"
+                    Margin="0,12,0,0"
+                    ItemsSource="{x:Bind ViewModel.Accounts}"
+                    DisplayMemberPath="DisplayName" />
+            </Grid>
         </Border>
 
         <Border Grid.Column="1" BorderThickness="0,0,1,0" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">

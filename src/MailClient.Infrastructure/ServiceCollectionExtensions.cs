@@ -1,3 +1,7 @@
+using MailClient.Core.Abstractions;
+using MailClient.Data;
+using MailClient.Data.Repositories;
+using MailClient.ViewModels.AccountSetup;
 using MailClient.ViewModels.Shell;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -10,10 +14,20 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddMailClientServices(this IServiceCollection services)
     {
-        services.AddTransient<MainViewModel>();
+        services.AddSingleton(_ =>
+        {
+            var dataDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MailClient");
+            Directory.CreateDirectory(dataDir);
+            return new MailDbContext(Path.Combine(dataDir, "mailclient.db"));
+        });
+        services.AddSingleton<IAccountStore, AccountRepository>();
 
-        // M1: IAccountStore / IFolderStore / IMessageStore / IOutboxStore -> MailClient.Data repositories
+        services.AddTransient<MainViewModel>();
+        services.AddTransient<AddAccountViewModel>();
+
+        // M3+: IFolderStore / IMessageStore / IOutboxStore -> MailClient.Data repositories
         // M3+: IImapAccountClient / ISmtpSender / IMailSyncService -> MailClient.Mail implementations
+        // ICredentialStore / INotificationService are Windows-only; registered by MailClient.App itself.
 
         return services;
     }
