@@ -33,8 +33,8 @@ public sealed class MailSyncService(
 
     public async Task SyncFolderAsync(Guid folderId, SyncDepth depth, CancellationToken ct)
     {
-        if (depth != SyncDepth.RecentOnly)
-            throw new NotSupportedException($"SyncDepth.{depth} は未実装です（現状はRecentOnlyのみ対応）。");
+        if (depth == SyncDepth.Full)
+            throw new NotSupportedException("SyncDepth.Full は未実装です。ExtendBackward で少しずつ過去のメールを読み込んでください。");
 
         var folder = await folderStore.GetByIdAsync(folderId, ct)
             ?? throw new InvalidOperationException($"フォルダが見つかりません: {folderId}");
@@ -46,6 +46,21 @@ public sealed class MailSyncService(
         var password = credentialStore.GetImapPassword(account.Id)
             ?? throw new ImapAuthenticationException("保存されたパスワードが見つかりません。アカウントを再作成してください。");
 
+        uint fromUid = 1;
+        uint? toUid = null;
+
+        if (depth == SyncDepth.ExtendBackward)
+        {
+            var minUid = await messageStore.GetMinUidAsync(folder.Id, ct);
+            if (minUid is null or <= 1)
+            {
+                // Nothing local yet, or already at the oldest message — nothing further to fetch.
+                SyncProgressChanged?.Invoke(this, new SyncProgressEventArgs(account.Id, folder.Id, "これ以上過去のメールはありません", isComplete: true));
+                return;
+            }
+            toUid = minUid.Value - 1;
+        }
+
         SyncProgressChanged?.Invoke(this, new SyncProgressEventArgs(account.Id, folder.Id, "同期中...", isComplete: false));
 
         try
@@ -53,24 +68,26 @@ public sealed class MailSyncService(
             using var client = imapClientFactory();
             await client.ConnectAsync(account, password, ct);
             var (uidValidity, uidNext) = await client.SelectFolderAsync(folder.ImapFullName, ct);
-            var headers = await client.FetchHeadersAsync(folder.ImapFullName, fromUid: 1, toUid: null, maxCount: RecentHeaderCount, ct);
+            var headers = await client.FetchHeadersAsync(folder.ImapFullName, fromUid, toUid, maxCount: RecentHeaderCount, ct);
             await client.DisconnectAsync();
 
-            var unreadCount = 0;
             foreach (var header in headers)
             {
                 var existing = await messageStore.GetByUidAsync(folder.Id, header.Uid, ct);
                 var toSave = Reconcile(header, folder.Id, existing);
                 await messageStore.SaveAsync(toSave, ct);
-                if (!toSave.IsRead)
-                    unreadCount++;
 
-                if (existing is null)
+                // Only RecentOnly syncs represent genuinely new mail; ExtendBackward is the user
+                // deliberately paging into history and must not trigger arrival notifications.
+                if (existing is null && depth == SyncDepth.RecentOnly)
                     MessageArrived?.Invoke(this, new MessageArrivedEventArgs(toSave));
             }
 
-            // TotalCount here reflects locally-known messages after this partial sync, not the
-            // server's true folder total — full-history tracking lands with SyncDepth.Full later.
+            // Reflects all locally-known messages for the folder (grows as ExtendBackward pages
+            // further back), not the server's true folder total — full-history tracking would
+            // need SyncDepth.Full.
+            var (totalCount, unreadCount) = await messageStore.GetFolderCountsAsync(folder.Id, ct);
+
             var updatedFolder = new MailFolder
             {
                 Id = folder.Id,
@@ -83,12 +100,12 @@ public sealed class MailSyncService(
                 UidNext = uidNext,
                 HighestModSeq = folder.HighestModSeq,
                 UnreadCount = unreadCount,
-                TotalCount = headers.Count,
+                TotalCount = totalCount,
                 LastSyncedAt = DateTimeOffset.UtcNow,
             };
             await folderStore.SaveAsync(updatedFolder, ct);
 
-            FolderCountsChanged?.Invoke(this, new FolderCountsChangedEventArgs(folder.Id, unreadCount, headers.Count));
+            FolderCountsChanged?.Invoke(this, new FolderCountsChangedEventArgs(folder.Id, unreadCount, totalCount));
             SyncProgressChanged?.Invoke(this, new SyncProgressEventArgs(account.Id, folder.Id, "同期完了", isComplete: true));
         }
         catch (Exception ex) when (ex is not OperationCanceledException)

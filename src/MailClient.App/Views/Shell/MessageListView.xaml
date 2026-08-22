@@ -54,6 +54,13 @@
             SelectionMode="Single"
             SelectionChanged="OnMessageSelectionChanged"
             Visibility="{x:Bind FolderHeaderVisibility(SearchViewModel.IsSearchActive), Mode=OneWay}">
+            <ListView.Footer>
+                <Button
+                    Content="もっと読み込む"
+                    Margin="16,8"
+                    HorizontalAlignment="Stretch"
+                    Command="{x:Bind ViewModel.LoadMoreCommand}" />
+            </ListView.Footer>
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="model:MailMessage">
                     <Grid Padding="16,8" ColumnSpacing="12">

@@ -66,6 +66,31 @@ public sealed partial class MessageListViewModel : ViewModelBase
         }
     }
 
+    // Pages further back into the folder's history (SyncDepth.ExtendBackward), then reloads the
+    // list from local storage so the newly-fetched older messages appear alongside the rest.
+    [RelayCommand]
+    private async Task LoadMoreAsync()
+    {
+        if (_currentFolder is null)
+            return;
+
+        ErrorMessage = null;
+        IsBusy = true;
+        try
+        {
+            await _syncService.SyncFolderAsync(_currentFolder.Id, SyncDepth.ExtendBackward, CancellationToken.None);
+            await RefreshCurrentAsync();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"読み込みに失敗しました: {ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
     // Re-reads the current folder's messages from local storage (no re-sync) so read/flag
     // state changes made elsewhere (e.g. the reading pane) show up in the list.
     public async Task RefreshCurrentAsync()

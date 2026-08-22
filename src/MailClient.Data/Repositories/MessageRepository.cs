@@ -49,6 +49,36 @@ public sealed class MessageRepository(MailDbContext db) : IMessageStore
         return await reader.ReadAsync(ct) ? Map(reader) : null;
     }
 
+    public async Task<uint?> GetMinUidAsync(Guid folderId, CancellationToken ct)
+    {
+        await using var connection = db.CreateConnection();
+        await connection.OpenAsync(ct);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT MIN(uid) FROM messages WHERE folder_id = $folderId;";
+        command.Parameters.AddWithValue("$folderId", folderId.ToString());
+        var result = await command.ExecuteScalarAsync(ct);
+        return result is null or DBNull ? null : (uint)Convert.ToInt64(result);
+    }
+
+    public async Task<(int Total, int Unread)> GetFolderCountsAsync(Guid folderId, CancellationToken ct)
+    {
+        await using var connection = db.CreateConnection();
+        await connection.OpenAsync(ct);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT COUNT(*), SUM(CASE WHEN is_read = 0 THEN 1 ELSE 0 END)
+            FROM messages WHERE folder_id = $folderId;
+            """;
+        command.Parameters.AddWithValue("$folderId", folderId.ToString());
+        await using var reader = await command.ExecuteReaderAsync(ct);
+        if (!await reader.ReadAsync(ct))
+            return (0, 0);
+
+        var total = (int)reader.GetInt64(0);
+        var unread = reader.IsDBNull(1) ? 0 : (int)reader.GetInt64(1);
+        return (total, unread);
+    }
+
     public async Task SaveAsync(MailMessage message, CancellationToken ct)
     {
         await using var connection = db.CreateConnection();

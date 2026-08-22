@@ -187,7 +187,7 @@ public sealed class ImapAccountClient : IImapAccountClient
         MessageId = summary.Envelope?.MessageId,
         InReplyTo = summary.Envelope?.InReplyTo,
         References = summary.References is { Count: > 0 } refs ? string.Join(' ', refs) : null,
-        Subject = summary.Envelope?.Subject ?? string.Empty,
+        Subject = SubjectCharsetFixer.Fix(summary.Envelope?.Subject ?? string.Empty),
         FromDisplay = summary.Envelope?.From?.Mailboxes?.FirstOrDefault()?.Name ?? string.Empty,
         FromAddress = summary.Envelope?.From?.Mailboxes?.FirstOrDefault()?.Address ?? string.Empty,
         ToRecipients = summary.Envelope?.To is { Count: > 0 } to
