@@ -9,11 +9,14 @@ namespace MailClient.ViewModels.Shell;
 
 // M3: connects on demand and lists real folders. M4: kicks off INBOX header sync once folders
 // are known, and reports which folder the user selected so MessageListViewModel can load it.
+// M6: a successful connect is also the natural "we're back online" signal, so it drains any
+// actions queued in the Outbox while this account was unreachable.
 public sealed partial class SidebarViewModel(
     IAccountStore accountStore,
     IFolderStore folderStore,
     ICredentialStore credentialStore,
     IMailSyncService mailSyncService,
+    IOutboxProcessor outboxProcessor,
     Func<IImapAccountClient> imapClientFactory) : ViewModelBase
 {
     public ObservableCollection<AccountNode> Accounts { get; } = [];
@@ -66,6 +69,9 @@ public sealed partial class SidebarViewModel(
             // Fire-and-forget: warms up INBOX so it's ready by the time the user clicks it.
             // MessageListViewModel syncs on-demand too, so a race here just means a redundant sync.
             _ = mailSyncService.InitialSyncAsync(node.Account.Id, CancellationToken.None);
+
+            // We just proved this account is reachable — drain anything queued while it wasn't.
+            _ = outboxProcessor.ProcessAsync(node.Account.Id, CancellationToken.None);
         }
         catch (Exception ex)
         {

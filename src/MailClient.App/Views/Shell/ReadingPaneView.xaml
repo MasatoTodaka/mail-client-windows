@@ -10,6 +10,7 @@
     <UserControl.Resources>
         <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
         <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+        <converters:ObjectToVisibilityConverter x:Key="ObjectToVisibilityConverter" />
         <converters:DateTimeOffsetToShortStringConverter x:Key="DateTimeOffsetToShortStringConverter" />
     </UserControl.Resources>
 
@@ -17,10 +18,25 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0" Margin="16,16,16,8" Spacing="2">
+        <StackPanel
+            Grid.Row="0"
+            Orientation="Horizontal"
+            Spacing="8"
+            Margin="16,12,16,0"
+            Visibility="{x:Bind ViewModel.SelectedMessage, Mode=OneWay, Converter={StaticResource ObjectToVisibilityConverter}}">
+            <Button Content="返信" Click="OnReplyClick" />
+            <Button Content="全員に返信" Click="OnReplyAllClick" />
+            <Button Content="転送" Click="OnForwardClick" />
+            <Button Content="フラグ" Command="{x:Bind ViewModel.ToggleFlagCommand}" />
+            <Button Content="削除" Command="{x:Bind ViewModel.DeleteCommand}" />
+            <Button Content="アーカイブ" Command="{x:Bind ViewModel.ArchiveCommand}" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Margin="16,12,16,8" Spacing="2">
             <TextBlock
                 Text="{x:Bind ViewModel.SelectedMessage.Subject, Mode=OneWay}"
                 Style="{ThemeResource SubtitleTextBlockStyle}"
@@ -39,7 +55,7 @@
         </StackPanel>
 
         <InfoBar
-            Grid.Row="1"
+            Grid.Row="2"
             Margin="16,0,16,8"
             IsOpen="{x:Bind ViewModel.HasBlockedRemoteImages, Mode=OneWay}"
             Severity="Informational"
@@ -50,7 +66,7 @@
             </InfoBar.ActionButton>
         </InfoBar>
 
-        <Grid Grid.Row="2">
+        <Grid Grid.Row="3">
             <ScrollViewer Visibility="{x:Bind IsPlainTextVisible(ViewModel.IsHtml), Mode=OneWay}">
                 <TextBlock
                     Margin="16,0,16,16"

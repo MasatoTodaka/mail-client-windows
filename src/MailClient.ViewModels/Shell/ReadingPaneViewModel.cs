@@ -1,3 +1,4 @@
+using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MailClient.Core;
@@ -9,11 +10,15 @@ namespace MailClient.ViewModels.Shell;
 
 // M5: on-demand body fetch (cached to a local file, never re-downloaded once cached), HTML
 // rendered with remote images blocked by default, and read-state marking on open.
+// M6: flag/delete(→Trash)/archive act immediately on local state, then queue the matching
+// OutboxAction so the change survives being offline and replays once connectivity returns.
 public sealed partial class ReadingPaneViewModel(
     IMessageStore messageStore,
     IFolderStore folderStore,
     IAccountStore accountStore,
     ICredentialStore credentialStore,
+    IOutboxStore outboxStore,
+    IOutboxProcessor outboxProcessor,
     Func<IImapAccountClient> imapClientFactory,
     AppDataPaths appDataPaths) : ViewModelBase
 {
@@ -36,6 +41,10 @@ public sealed partial class ReadingPaneViewModel(
 
     [ObservableProperty]
     private bool _remoteImagesAllowed;
+
+    // Raised after any change to the open message's state (opened/flag toggled/moved) so the
+    // message list can refresh the corresponding row (or remove it, if it moved elsewhere).
+    public event EventHandler? MessageStateChanged;
 
     public async Task LoadAsync(MailMessage message)
     {
@@ -75,12 +84,9 @@ public sealed partial class ReadingPaneViewModel(
         finally
         {
             IsBusy = false;
-            MessageOpened?.Invoke(this, EventArgs.Empty);
+            MessageStateChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-
-    // Raised after every load attempt so the message list can refresh its (possibly now-read) row.
-    public event EventHandler? MessageOpened;
 
     [RelayCommand]
     private void LoadRemoteImages()
@@ -88,6 +94,124 @@ public sealed partial class ReadingPaneViewModel(
         RemoteImagesAllowed = true;
         ApplyHtmlRendering();
     }
+
+    [RelayCommand]
+    private async Task ToggleFlagAsync()
+    {
+        var message = SelectedMessage;
+        if (message is null)
+            return;
+
+        var newFlagged = !message.IsFlagged;
+        message.IsFlagged = newFlagged;
+        await messageStore.SetFlaggedAsync(message.Id, newFlagged, CancellationToken.None);
+
+        await EnqueueOutboxActionAsync(
+            message.AccountId,
+            newFlagged ? OutboxActionType.MarkFlagged : OutboxActionType.MarkUnflagged,
+            message.Id,
+            targetFolderId: null,
+            new OutboxMessageRef(message.FolderId, message.Uid));
+
+        MessageStateChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    [RelayCommand]
+    private Task DeleteAsync() => MoveToSpecialFolderAsync(MailFolderSpecialUse.Trash);
+
+    [RelayCommand]
+    private Task ArchiveAsync() => MoveToSpecialFolderAsync(MailFolderSpecialUse.Archive);
+
+    private async Task MoveToSpecialFolderAsync(MailFolderSpecialUse targetUse)
+    {
+        var message = SelectedMessage;
+        if (message is null)
+            return;
+
+        ErrorMessage = null;
+        var accountFolders = await folderStore.GetByAccountAsync(message.AccountId, CancellationToken.None);
+        var target = accountFolders.FirstOrDefault(f => f.SpecialUse == targetUse);
+        if (target is null)
+        {
+            ErrorMessage = $"{DescribeSpecialUse(targetUse)}フォルダが見つかりません。";
+            return;
+        }
+        if (target.Id == message.FolderId)
+            return;
+
+        var sourceRef = new OutboxMessageRef(message.FolderId, message.Uid);
+        var sourceFolder = await folderStore.GetByIdAsync(message.FolderId, CancellationToken.None);
+
+        var moved = WithFolder(message, target.Id);
+        await messageStore.SaveAsync(moved, CancellationToken.None);
+
+        if (sourceFolder is not null)
+        {
+            var newUnread = message.IsRead ? sourceFolder.UnreadCount : Math.Max(0, sourceFolder.UnreadCount - 1);
+            await folderStore.UpdateCountsAsync(sourceFolder.Id, newUnread, Math.Max(0, sourceFolder.TotalCount - 1), CancellationToken.None);
+        }
+
+        await EnqueueOutboxActionAsync(message.AccountId, OutboxActionType.Move, message.Id, target.Id, sourceRef);
+
+        SelectedMessage = null;
+        PlainTextBody = null;
+        HtmlBody = null;
+        IsHtml = false;
+        MessageStateChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private async Task EnqueueOutboxActionAsync(
+        Guid accountId, OutboxActionType type, Guid? messageId, Guid? targetFolderId, OutboxMessageRef reference)
+    {
+        var action = new OutboxAction
+        {
+            Id = Guid.NewGuid(),
+            AccountId = accountId,
+            Type = type,
+            MessageId = messageId,
+            TargetFolderId = targetFolderId,
+            PayloadJson = JsonSerializer.Serialize(reference),
+            CreatedAt = DateTimeOffset.UtcNow,
+        };
+        await outboxStore.EnqueueAsync(action, CancellationToken.None);
+
+        // Best-effort immediate replay; if offline this just no-ops and stays queued.
+        _ = outboxProcessor.ProcessAsync(accountId, CancellationToken.None);
+    }
+
+    private static string DescribeSpecialUse(MailFolderSpecialUse use) => use switch
+    {
+        MailFolderSpecialUse.Trash => "ゴミ箱",
+        MailFolderSpecialUse.Archive => "アーカイブ",
+        _ => use.ToString(),
+    };
+
+    private static MailMessage WithFolder(MailMessage message, Guid folderId) => new()
+    {
+        Id = message.Id,
+        AccountId = message.AccountId,
+        FolderId = folderId,
+        Uid = message.Uid,
+        MessageId = message.MessageId,
+        InReplyTo = message.InReplyTo,
+        References = message.References,
+        Subject = message.Subject,
+        FromDisplay = message.FromDisplay,
+        FromAddress = message.FromAddress,
+        ToRecipients = message.ToRecipients,
+        CcRecipients = message.CcRecipients,
+        Date = message.Date,
+        Snippet = message.Snippet,
+        IsRead = message.IsRead,
+        IsFlagged = message.IsFlagged,
+        IsAnswered = message.IsAnswered,
+        IsDraft = message.IsDraft,
+        HasAttachments = message.HasAttachments,
+        Size = message.Size,
+        IsBodyDownloaded = message.IsBodyDownloaded,
+        BodyTextPath = message.BodyTextPath,
+        BodyHtmlPath = message.BodyHtmlPath,
+    };
 
     private void ApplyHtmlRendering()
     {
@@ -161,5 +285,9 @@ public sealed partial class ReadingPaneViewModel(
         var folder = await folderStore.GetByIdAsync(message.FolderId, CancellationToken.None);
         if (folder is not null && folder.UnreadCount > 0)
             await folderStore.UpdateCountsAsync(folder.Id, folder.UnreadCount - 1, folder.TotalCount, CancellationToken.None);
+
+        await EnqueueOutboxActionAsync(
+            message.AccountId, OutboxActionType.MarkRead, message.Id,
+            targetFolderId: null, new OutboxMessageRef(message.FolderId, message.Uid));
     }
 }

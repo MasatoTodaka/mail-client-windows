@@ -9,4 +9,5 @@ public sealed class AppDataPaths(string rootDirectory)
     public string RootDirectory { get; } = rootDirectory;
     public string DatabasePath => Path.Combine(RootDirectory, "mailclient.db");
     public string BodiesDirectory => Path.Combine(RootDirectory, "Bodies");
+    public string OutboxDirectory => Path.Combine(RootDirectory, "Outbox");
 }
