@@ -94,7 +94,7 @@ public sealed class MessageRepository(MailDbContext db) : IMessageStore
             {
                 var id = reader.GetString(0);
                 var subject = reader.GetString(1);
-                var fixedSubject = SubjectCharsetFixer.Fix(subject);
+                var fixedSubject = MojibakeFixer.Fix(subject);
                 if (fixedSubject != subject)
                     toFix.Add((id, fixedSubject));
             }
@@ -115,6 +115,20 @@ public sealed class MessageRepository(MailDbContext db) : IMessageStore
         }
 
         return toFix.Count;
+    }
+
+    public async Task<IReadOnlyList<MailMessage>> GetDownloadedBodyMessagesAsync(CancellationToken ct)
+    {
+        await using var connection = db.CreateConnection();
+        await connection.OpenAsync(ct);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT * FROM messages WHERE is_body_downloaded = 1;";
+
+        var messages = new List<MailMessage>();
+        await using var reader = await command.ExecuteReaderAsync(ct);
+        while (await reader.ReadAsync(ct))
+            messages.Add(Map(reader));
+        return messages;
     }
 
     public async Task SaveAsync(MailMessage message, CancellationToken ct)

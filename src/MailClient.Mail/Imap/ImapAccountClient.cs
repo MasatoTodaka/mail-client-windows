@@ -110,7 +110,9 @@ public sealed class ImapAccountClient : IImapAccountClient
             await folder.OpenAsync(FolderAccess.ReadOnly, ct);
 
         var message = await folder.GetMessageAsync(new UniqueId(uid), ct);
-        return (message.TextBody, message.HtmlBody);
+        return (
+            message.TextBody is null ? null : MojibakeFixer.Fix(message.TextBody),
+            message.HtmlBody is null ? null : MojibakeFixer.Fix(message.HtmlBody));
     }
 
     public async Task SetFlagsAsync(string imapFullName, uint uid, bool isRead, bool isFlagged, CancellationToken ct)
@@ -188,7 +190,7 @@ public sealed class ImapAccountClient : IImapAccountClient
         MessageId = summary.Envelope?.MessageId,
         InReplyTo = summary.Envelope?.InReplyTo,
         References = summary.References is { Count: > 0 } refs ? string.Join(' ', refs) : null,
-        Subject = SubjectCharsetFixer.Fix(summary.Envelope?.Subject ?? string.Empty),
+        Subject = MojibakeFixer.Fix(summary.Envelope?.Subject ?? string.Empty),
         FromDisplay = summary.Envelope?.From?.Mailboxes?.FirstOrDefault()?.Name ?? string.Empty,
         FromAddress = summary.Envelope?.From?.Mailboxes?.FirstOrDefault()?.Address ?? string.Empty,
         ToRecipients = summary.Envelope?.To is { Count: > 0 } to

@@ -1,4 +1,5 @@
 using MailClient.Core.Abstractions;
+using MailClient.Core.Text;
 using MailClient.Data;
 using MailClient.Infrastructure;
 using MailClient.Platform;
@@ -44,12 +45,32 @@ public partial class App : Application
     {
         await Services.GetRequiredService<MailDbContext>().MigrateAsync();
 
-        // One-time local cleanup: re-decode any subject cached before SubjectCharsetFixer
-        // existed. Local-only and idempotent (no-ops once everything's already fixed), so it's
-        // safe to just run on every launch rather than tracking whether it's needed.
+        // One-time local cleanup: re-decode any subject or cached body file that predates
+        // MojibakeFixer. Local-only and idempotent (no-ops once everything's already fixed), so
+        // it's safe to just run on every launch rather than tracking whether it's needed.
         try
         {
-            await Services.GetRequiredService<IMessageStore>().FixMojibakeSubjectsAsync(CancellationToken.None);
+            var messageStore = Services.GetRequiredService<IMessageStore>();
+            await messageStore.FixMojibakeSubjectsAsync(CancellationToken.None);
+
+            foreach (var message in await messageStore.GetDownloadedBodyMessagesAsync(CancellationToken.None))
+            {
+                if (message.BodyTextPath is { } textPath && File.Exists(textPath))
+                {
+                    var text = await File.ReadAllTextAsync(textPath);
+                    var fixedText = MojibakeFixer.Fix(text);
+                    if (fixedText != text)
+                        await File.WriteAllTextAsync(textPath, fixedText);
+                }
+
+                if (message.BodyHtmlPath is { } htmlPath && File.Exists(htmlPath))
+                {
+                    var html = await File.ReadAllTextAsync(htmlPath);
+                    var fixedHtml = MojibakeFixer.Fix(html);
+                    if (fixedHtml != html)
+                        await File.WriteAllTextAsync(htmlPath, fixedHtml);
+                }
+            }
         }
         catch
         {
