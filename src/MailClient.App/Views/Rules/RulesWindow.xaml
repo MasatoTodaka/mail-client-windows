@@ -33,7 +33,14 @@
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="{x:Bind Summary}" TextWrapping="Wrap" VerticalAlignment="Center" />
-                            <Button Grid.Column="1" Content="削除" Click="OnDeleteRuleClick" Tag="{x:Bind}" />
+                            <Button
+                                Grid.Column="1"
+                                Click="OnDeleteRuleClick"
+                                Tag="{x:Bind}"
+                                ToolTipService.ToolTip="削除"
+                                AutomationProperties.Name="削除">
+                                <FontIcon Glyph="&#xE74D;" />
+                            </Button>
                         </Grid>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>

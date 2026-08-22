@@ -25,8 +25,15 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <Button Grid.Column="0" HorizontalAlignment="Stretch" Content="アカウントを追加" Click="OnAddAccountClick" />
-            <Button Grid.Column="1" Content="設定" Click="OnSettingsClick" />
+            <Button Grid.Column="0" HorizontalAlignment="Stretch" Click="OnAddAccountClick">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE109;" FontSize="14" />
+                    <TextBlock Text="アカウントを追加" />
+                </StackPanel>
+            </Button>
+            <Button Grid.Column="1" Click="OnSettingsClick" ToolTipService.ToolTip="設定" AutomationProperties.Name="設定">
+                <FontIcon Glyph="&#xE713;" />
+            </Button>
         </Grid>
 
         <StackPanel
@@ -71,11 +78,16 @@
                                 Margin="0,4,0,0"
                                 Visibility="{x:Bind ErrorMessage, Mode=OneWay, Converter={StaticResource StringToVisibilityConverter}}" />
                             <Button
-                                Content="再試行"
                                 Margin="0,4,0,0"
                                 Click="OnRetryClick"
                                 Tag="{x:Bind}"
-                                Visibility="{x:Bind ErrorMessage, Mode=OneWay, Converter={StaticResource StringToVisibilityConverter}}" />
+                                AutomationProperties.Name="再試行"
+                                Visibility="{x:Bind ErrorMessage, Mode=OneWay, Converter={StaticResource StringToVisibilityConverter}}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon Glyph="&#xE72C;" FontSize="14" />
+                                    <TextBlock Text="再試行" />
+                                </StackPanel>
+                            </Button>
 
                             <ListView
                                 ItemsSource="{x:Bind Folders}"

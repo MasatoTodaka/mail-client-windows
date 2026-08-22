@@ -32,7 +32,14 @@
                                 <TextBlock Text="{x:Bind DisplayName}" FontWeight="SemiBold" />
                                 <TextBlock Text="{x:Bind EmailAddress}" Opacity="0.7" />
                             </StackPanel>
-                            <Button Grid.Column="1" Content="削除" Click="OnDeleteAccountClick" Tag="{x:Bind}" />
+                            <Button
+                                Grid.Column="1"
+                                Click="OnDeleteAccountClick"
+                                Tag="{x:Bind}"
+                                ToolTipService.ToolTip="削除"
+                                AutomationProperties.Name="削除">
+                                <FontIcon Glyph="&#xE74D;" />
+                            </Button>
                         </Grid>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>

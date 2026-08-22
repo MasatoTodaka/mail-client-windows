@@ -28,12 +28,24 @@
             Spacing="8"
             Margin="16,12,16,0"
             Visibility="{x:Bind ViewModel.SelectedMessage, Mode=OneWay, Converter={StaticResource ObjectToVisibilityConverter}}">
-            <Button Content="返信" Click="OnReplyClick" />
-            <Button Content="全員に返信" Click="OnReplyAllClick" />
-            <Button Content="転送" Click="OnForwardClick" />
-            <Button Content="フラグ" Command="{x:Bind ViewModel.ToggleFlagCommand}" />
-            <Button Content="削除" Command="{x:Bind ViewModel.DeleteCommand}" />
-            <Button Content="アーカイブ" Command="{x:Bind ViewModel.ArchiveCommand}" />
+            <Button Click="OnReplyClick" ToolTipService.ToolTip="返信" AutomationProperties.Name="返信">
+                <FontIcon Glyph="&#xE165;" />
+            </Button>
+            <Button Click="OnReplyAllClick" ToolTipService.ToolTip="全員に返信" AutomationProperties.Name="全員に返信">
+                <FontIcon Glyph="&#xE716;" />
+            </Button>
+            <Button Click="OnForwardClick" ToolTipService.ToolTip="転送" AutomationProperties.Name="転送">
+                <FontIcon Glyph="&#xE72A;" />
+            </Button>
+            <Button Command="{x:Bind ViewModel.ToggleFlagCommand}" ToolTipService.ToolTip="フラグ" AutomationProperties.Name="フラグ">
+                <FontIcon Glyph="&#xE129;" />
+            </Button>
+            <Button Command="{x:Bind ViewModel.DeleteCommand}" ToolTipService.ToolTip="削除" AutomationProperties.Name="削除">
+                <FontIcon Glyph="&#xE74D;" />
+            </Button>
+            <Button Command="{x:Bind ViewModel.ArchiveCommand}" ToolTipService.ToolTip="アーカイブ" AutomationProperties.Name="アーカイブ">
+                <FontIcon Glyph="&#xE7B8;" />
+            </Button>
         </StackPanel>
 
         <StackPanel Grid.Row="1" Margin="16,12,16,8" Spacing="2">
