@@ -11,6 +11,7 @@
 
     <UserControl.Resources>
         <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
+        <converters:IntToVisibilityConverter x:Key="IntToVisibilityConverter" />
     </UserControl.Resources>
 
     <Grid>
@@ -19,28 +20,61 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <Button
-            Grid.Row="0"
-            Margin="0,0,0,12"
-            HorizontalAlignment="Stretch"
-            Content="アカウントを追加"
-            Click="OnAddAccountClick" />
+        <Grid Grid.Row="0" Margin="0,0,0,12" ColumnSpacing="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Button Grid.Column="0" HorizontalAlignment="Stretch" Content="アカウントを追加" Click="OnAddAccountClick" />
+            <Button Grid.Column="1" Content="設定" Click="OnSettingsClick" />
+        </Grid>
+
+        <StackPanel
+            Grid.Row="1"
+            Spacing="8"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Top"
+            Margin="8,48,8,0"
+            Visibility="{x:Bind EmptyStateVisibility(ViewModel.Accounts.Count), Mode=OneWay}">
+            <TextBlock Text="アカウントが登録されていません" Style="{ThemeResource BodyStrongTextBlockStyle}" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" />
+            <TextBlock Text="上の「アカウントを追加」からメールアカウントを設定してください。" Opacity="0.7" TextWrapping="Wrap" TextAlignment="Center" />
+        </StackPanel>
 
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
             <ItemsControl ItemsSource="{x:Bind ViewModel.Accounts}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="shell:AccountNode">
                         <StackPanel Margin="0,0,0,16">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <TextBlock Text="{x:Bind DisplayName}" Style="{ThemeResource BodyStrongTextBlockStyle}" />
-                                <ProgressRing IsActive="{x:Bind IsConnecting, Mode=OneWay}" Width="14" Height="14" />
-                            </StackPanel>
+                            <Grid ColumnSpacing="6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="{x:Bind DisplayName}" Style="{ThemeResource BodyStrongTextBlockStyle}" />
+                                <Border
+                                    Grid.Column="1"
+                                    Background="{ThemeResource AccentFillColorDefaultBrush}"
+                                    CornerRadius="8"
+                                    Padding="6,1"
+                                    VerticalAlignment="Center"
+                                    Visibility="{x:Bind UnreadTotal, Mode=OneWay, Converter={StaticResource IntToVisibilityConverter}}">
+                                    <TextBlock Text="{x:Bind UnreadTotal, Mode=OneWay}" FontSize="11" Foreground="White" />
+                                </Border>
+                                <ProgressRing Grid.Column="2" HorizontalAlignment="Left" IsActive="{x:Bind IsConnecting, Mode=OneWay}" Width="14" Height="14" />
+                            </Grid>
 
                             <TextBlock
                                 Text="{x:Bind ErrorMessage, Mode=OneWay}"
                                 Foreground="{ThemeResource SystemFillColorCriticalBrush}"
                                 TextWrapping="Wrap"
                                 Margin="0,4,0,0"
+                                Visibility="{x:Bind ErrorMessage, Mode=OneWay, Converter={StaticResource StringToVisibilityConverter}}" />
+                            <Button
+                                Content="再試行"
+                                Margin="0,4,0,0"
+                                Click="OnRetryClick"
+                                Tag="{x:Bind}"
                                 Visibility="{x:Bind ErrorMessage, Mode=OneWay, Converter={StaticResource StringToVisibilityConverter}}" />
 
                             <ListView
@@ -50,7 +84,19 @@
                                 SelectionChanged="OnFolderSelectionChanged">
                                 <ListView.ItemTemplate>
                                     <DataTemplate x:DataType="model:MailFolder">
-                                        <TextBlock Text="{x:Bind DisplayName}" Margin="0,2,0,2" />
+                                        <Grid ColumnSpacing="6">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="{x:Bind DisplayName}" Margin="0,2,0,2" />
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                Text="{x:Bind UnreadCount}"
+                                                Opacity="0.7"
+                                                VerticalAlignment="Center"
+                                                Visibility="{x:Bind UnreadCount, Converter={StaticResource IntToVisibilityConverter}}" />
+                                        </Grid>
                                     </DataTemplate>
                                 </ListView.ItemTemplate>
                             </ListView>

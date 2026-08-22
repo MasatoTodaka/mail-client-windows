@@ -58,11 +58,15 @@ public partial class App : Application
             // in the foreground; clicking the toast brings the window up on that message.
             var syncService = Services.GetRequiredService<IMailSyncService>();
             var accountStore = Services.GetRequiredService<IAccountStore>();
+            var settingsStore = Services.GetRequiredService<ISettingsStore>();
             syncService.MessageArrived += async (_, e) =>
             {
                 try
                 {
                     if (_mainWindow is null || _mainWindow.IsWindowActive)
+                        return;
+
+                    if (!await settingsStore.GetNotificationsEnabledAsync(CancellationToken.None))
                         return;
 
                     var account = await accountStore.GetByIdAsync(e.Message.AccountId, CancellationToken.None);

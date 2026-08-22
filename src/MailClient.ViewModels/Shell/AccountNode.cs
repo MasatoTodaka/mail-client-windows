@@ -16,4 +16,11 @@ public sealed partial class AccountNode(Account account) : ObservableObject
 
     [ObservableProperty]
     private string? _errorMessage;
+
+    [ObservableProperty]
+    private int _unreadTotal;
+
+    // MailFolder isn't an ObservableObject, so per-folder count changes replace the instance in
+    // Folders rather than mutating it in place; call this after any such replacement.
+    public void RecalculateUnreadTotal() => UnreadTotal = Folders.Sum(f => f.UnreadCount);
 }

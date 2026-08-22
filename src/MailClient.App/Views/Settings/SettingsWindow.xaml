@@ -1,0 +1,42 @@
+<Window
+    x:Class="MailClient.App.Views.Settings.SettingsWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:model="using:MailClient.Core.Models"
+    mc:Ignorable="d"
+    Title="設定">
+
+    <Window.SystemBackdrop>
+        <MicaBackdrop />
+    </Window.SystemBackdrop>
+
+    <ScrollViewer Padding="16">
+        <StackPanel Spacing="8" MinWidth="420">
+
+            <TextBlock Text="通知" Style="{ThemeResource SubtitleTextBlockStyle}" />
+            <ToggleSwitch Header="新着メールをデスクトップ通知で知らせる" IsOn="{x:Bind ViewModel.NotificationsEnabled, Mode=TwoWay}" />
+
+            <TextBlock Text="アカウント" Style="{ThemeResource SubtitleTextBlockStyle}" Margin="0,16,0,0" />
+            <ItemsControl ItemsSource="{x:Bind ViewModel.Accounts}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="model:Account">
+                        <Grid Padding="0,8" ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="{x:Bind DisplayName}" FontWeight="SemiBold" />
+                                <TextBlock Text="{x:Bind EmailAddress}" Opacity="0.7" />
+                            </StackPanel>
+                            <Button Grid.Column="1" Content="削除" Click="OnDeleteAccountClick" Tag="{x:Bind}" />
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+        </StackPanel>
+    </ScrollViewer>
+</Window>
