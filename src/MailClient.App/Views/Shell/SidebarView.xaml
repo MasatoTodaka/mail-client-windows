@@ -81,7 +81,11 @@
                                 ItemsSource="{x:Bind Folders}"
                                 Margin="12,4,0,0"
                                 SelectionMode="Single"
-                                SelectionChanged="OnFolderSelectionChanged">
+                                SelectionChanged="OnFolderSelectionChanged"
+                                CanReorderItems="True"
+                                AllowDrop="True"
+                                CanDragItems="True"
+                                DragItemsCompleted="OnFolderDragItemsCompleted">
                                 <ListView.ItemTemplate>
                                     <DataTemplate x:DataType="model:MailFolder">
                                         <Grid ColumnSpacing="6" AutomationProperties.Name="{x:Bind DisplayName}">

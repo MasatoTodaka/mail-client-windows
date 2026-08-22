@@ -8,4 +8,8 @@ public interface IFolderStore
     Task<MailFolder?> GetByIdAsync(Guid id, CancellationToken ct);
     Task SaveAsync(MailFolder folder, CancellationToken ct);
     Task UpdateCountsAsync(Guid folderId, int unreadCount, int totalCount, CancellationToken ct);
+
+    // Persists a new display order for a set of sibling folders (e.g. after a sidebar drag
+    // reorder) — orderedFolderIds[i]'s sort_order becomes i.
+    Task ReorderAsync(IReadOnlyList<Guid> orderedFolderIds, CancellationToken ct);
 }

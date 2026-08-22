@@ -13,6 +13,7 @@ public sealed class MailDbContext
         (2, "0002_fts.sql"),
         (3, "0003_fix_fts_triggers.sql"),
         (4, "0004_settings.sql"),
+        (5, "0005_folder_sort_order.sql"),
     ];
 
     private readonly string _connectionString;

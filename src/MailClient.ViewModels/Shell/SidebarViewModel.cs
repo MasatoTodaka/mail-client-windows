@@ -89,6 +89,7 @@ public sealed partial class SidebarViewModel : ViewModelBase
                 UnreadCount = e.UnreadCount,
                 TotalCount = e.TotalCount,
                 LastSyncedAt = folder.LastSyncedAt,
+                SortOrder = folder.SortOrder,
             };
             node.RecalculateUnreadTotal();
             return;
@@ -108,19 +109,26 @@ public sealed partial class SidebarViewModel : ViewModelBase
             var existingByFullName = existingFolders
                 .Where(f => f.ImapFullName is not null)
                 .ToDictionary(f => f.ImapFullName!);
+            // Newly-discovered folders append after whatever the user has already arranged,
+            // rather than defaulting to sort_order 0 and jumping to the front.
+            var nextNewSortOrder = existingFolders.Count == 0 ? 0 : existingFolders.Max(f => f.SortOrder) + 1;
 
             using var client = _imapClientFactory();
             await client.ConnectAsync(node.Account, password, CancellationToken.None);
             var remoteFolders = await client.ListFoldersAsync(CancellationToken.None);
             await client.DisconnectAsync();
 
-            node.Folders.Clear();
+            var reconciled = new List<MailFolder>();
             foreach (var remoteFolder in remoteFolders)
             {
-                var folderToSave = ReconcileWithExisting(remoteFolder, existingByFullName);
+                var folderToSave = ReconcileWithExisting(remoteFolder, existingByFullName, ref nextNewSortOrder);
                 await _folderStore.SaveAsync(folderToSave, CancellationToken.None);
-                node.Folders.Add(folderToSave);
+                reconciled.Add(folderToSave);
             }
+
+            node.Folders.Clear();
+            foreach (var folder in reconciled.OrderBy(f => f.SortOrder).ThenBy(f => f.DisplayName, StringComparer.Ordinal))
+                node.Folders.Add(folder);
             node.RecalculateUnreadTotal();
 
             // Fire-and-forget: warms up INBOX so it's ready by the time the user clicks it.
@@ -145,10 +153,14 @@ public sealed partial class SidebarViewModel : ViewModelBase
 
     // Keeps the folder's local identity (and any sync-state already recorded for it) stable
     // across repeated ListFoldersAsync calls, so re-connecting doesn't duplicate rows.
-    private static MailFolder ReconcileWithExisting(MailFolder remote, Dictionary<string, MailFolder> existingByFullName)
+    private static MailFolder ReconcileWithExisting(
+        MailFolder remote, Dictionary<string, MailFolder> existingByFullName, ref int nextNewSortOrder)
     {
         if (remote.ImapFullName is null || !existingByFullName.TryGetValue(remote.ImapFullName, out var existing))
+        {
+            remote.SortOrder = nextNewSortOrder++;
             return remote;
+        }
 
         return new MailFolder
         {
@@ -164,8 +176,15 @@ public sealed partial class SidebarViewModel : ViewModelBase
             UnreadCount = existing.UnreadCount,
             TotalCount = existing.TotalCount,
             LastSyncedAt = existing.LastSyncedAt,
+            SortOrder = existing.SortOrder,
         };
     }
+
+    // Persists the sidebar's current on-screen folder order for this account (e.g. after a drag
+    // reorder already mutated node.Folders in place).
+    [RelayCommand]
+    private Task ReorderFoldersAsync(AccountNode node) =>
+        _folderStore.ReorderAsync(node.Folders.Select(f => f.Id).ToList(), CancellationToken.None);
 
     private static string DescribeError(Exception ex) => ex switch
     {

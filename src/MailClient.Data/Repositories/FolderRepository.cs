@@ -12,7 +12,7 @@ public sealed class FolderRepository(MailDbContext db) : IFolderStore
         await using var connection = db.CreateConnection();
         await connection.OpenAsync(ct);
         await using var command = connection.CreateCommand();
-        command.CommandText = "SELECT * FROM folders WHERE account_id = $accountId ORDER BY display_name;";
+        command.CommandText = "SELECT * FROM folders WHERE account_id = $accountId ORDER BY sort_order, display_name;";
         command.Parameters.AddWithValue("$accountId", accountId.ToString());
 
         var folders = new List<MailFolder>();
@@ -42,10 +42,12 @@ public sealed class FolderRepository(MailDbContext db) : IFolderStore
         command.CommandText = """
             INSERT INTO folders (
                 id, account_id, imap_full_name, display_name, special_use, parent_folder_id,
-                uid_validity, uid_next, highest_mod_seq, unread_count, total_count, last_synced_at)
+                uid_validity, uid_next, highest_mod_seq, unread_count, total_count, last_synced_at,
+                sort_order)
             VALUES (
                 $id, $accountId, $imapFullName, $displayName, $specialUse, $parentFolderId,
-                $uidValidity, $uidNext, $highestModSeq, $unreadCount, $totalCount, $lastSyncedAt)
+                $uidValidity, $uidNext, $highestModSeq, $unreadCount, $totalCount, $lastSyncedAt,
+                $sortOrder)
             ON CONFLICT(id) DO UPDATE SET
                 account_id = excluded.account_id,
                 imap_full_name = excluded.imap_full_name,
@@ -57,7 +59,8 @@ public sealed class FolderRepository(MailDbContext db) : IFolderStore
                 highest_mod_seq = excluded.highest_mod_seq,
                 unread_count = excluded.unread_count,
                 total_count = excluded.total_count,
-                last_synced_at = excluded.last_synced_at;
+                last_synced_at = excluded.last_synced_at,
+                sort_order = excluded.sort_order;
             """;
         command.Parameters.AddWithValue("$id", folder.Id.ToString());
         command.Parameters.AddWithValue("$accountId", folder.AccountId.ToString());
@@ -71,7 +74,27 @@ public sealed class FolderRepository(MailDbContext db) : IFolderStore
         command.Parameters.AddWithValue("$unreadCount", folder.UnreadCount);
         command.Parameters.AddWithValue("$totalCount", folder.TotalCount);
         command.Parameters.AddWithValue("$lastSyncedAt", (object?)folder.LastSyncedAt?.ToString("o") ?? DBNull.Value);
+        command.Parameters.AddWithValue("$sortOrder", folder.SortOrder);
         await command.ExecuteNonQueryAsync(ct);
+    }
+
+    public async Task ReorderAsync(IReadOnlyList<Guid> orderedFolderIds, CancellationToken ct)
+    {
+        await using var connection = db.CreateConnection();
+        await connection.OpenAsync(ct);
+        await using var transaction = connection.BeginTransaction();
+
+        for (var i = 0; i < orderedFolderIds.Count; i++)
+        {
+            await using var command = connection.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText = "UPDATE folders SET sort_order = $sortOrder WHERE id = $id;";
+            command.Parameters.AddWithValue("$sortOrder", i);
+            command.Parameters.AddWithValue("$id", orderedFolderIds[i].ToString());
+            await command.ExecuteNonQueryAsync(ct);
+        }
+
+        transaction.Commit();
     }
 
     public async Task UpdateCountsAsync(Guid folderId, int unreadCount, int totalCount, CancellationToken ct)
@@ -112,6 +135,7 @@ public sealed class FolderRepository(MailDbContext db) : IFolderStore
             UnreadCount = (int)reader.GetInt64(reader.GetOrdinal("unread_count")),
             TotalCount = (int)reader.GetInt64(reader.GetOrdinal("total_count")),
             LastSyncedAt = lastSyncedText is null ? null : DateTimeOffset.Parse(lastSyncedText, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind),
+            SortOrder = (int)reader.GetInt64(reader.GetOrdinal("sort_order")),
         };
     }
 }

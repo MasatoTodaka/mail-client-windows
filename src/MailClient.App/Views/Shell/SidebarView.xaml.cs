@@ -47,6 +47,14 @@ public sealed partial class SidebarView : UserControl
             ViewModel.RetryCommand.Execute(node);
     }
 
+    // The ListView (bound to an ObservableCollection<MailFolder>) already reorders its own
+    // ItemsSource in place when a drag completes — this just persists that new order.
+    private void OnFolderDragItemsCompleted(ListViewBase sender, DragItemsCompletedEventArgs args)
+    {
+        if (sender.DataContext is AccountNode node)
+            ViewModel.ReorderFoldersCommand.Execute(node);
+    }
+
     private async void OnSettingsClick(object sender, RoutedEventArgs e)
     {
         var settingsViewModel = App.Services.GetRequiredService<SettingsViewModel>();

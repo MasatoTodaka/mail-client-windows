@@ -19,4 +19,5 @@ public sealed class MailFolder
     public int UnreadCount { get; set; }
     public int TotalCount { get; set; }
     public DateTimeOffset? LastSyncedAt { get; set; }
+    public int SortOrder { get; set; }
 }
