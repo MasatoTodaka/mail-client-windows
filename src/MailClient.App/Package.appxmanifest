@@ -15,7 +15,7 @@
 
   <Properties>
     <DisplayName>Mail Client</DisplayName>
-    <PublisherDisplayName>Masato Toda</PublisherDisplayName>
+    <PublisherDisplayName>Masato Todaka</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
 
