@@ -1,4 +1,5 @@
 using MailClient.App.Views.AccountSetup;
+using MailClient.Core.Models;
 using MailClient.ViewModels.AccountSetup;
 using MailClient.ViewModels.Shell;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,5 +31,11 @@ public sealed partial class SidebarView : UserControl
         var result = await dialog.ShowAsync();
         if (result == ContentDialogResult.Primary)
             await ViewModel.LoadCommand.ExecuteAsync(null);
+    }
+
+    private void OnFolderSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (e.AddedItems.FirstOrDefault() is MailFolder folder)
+            ViewModel.SelectFolderCommand.Execute(folder);
     }
 }

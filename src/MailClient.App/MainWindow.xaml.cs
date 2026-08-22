@@ -16,5 +16,7 @@ public sealed partial class MainWindow : Window
         InitializeComponent();
 
         SystemBackdrop = new MicaBackdrop();
+
+        Sidebar.ViewModel.FolderSelected += async (_, folder) => await MessageList.ViewModel.LoadAsync(folder);
     }
 }

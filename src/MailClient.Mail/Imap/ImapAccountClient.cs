@@ -48,6 +48,11 @@ public sealed class ImapAccountClient : IImapAccountClient
         var root = await _client.GetFolderAsync(personalNamespace.Path, ct);
         var imapFolders = await root.GetSubfoldersAsync(true, ct);
 
+        // Some servers (e.g. iCloud) don't return INBOX from GetSubfoldersAsync — it's always
+        // reachable via the client's own Inbox property, so fold it in explicitly.
+        if (imapFolders.All(f => !string.Equals(f.FullName, _client.Inbox.FullName, StringComparison.OrdinalIgnoreCase)))
+            imapFolders = [_client.Inbox, .. imapFolders];
+
         var result = new List<MailFolder>();
         foreach (var folder in imapFolders)
         {

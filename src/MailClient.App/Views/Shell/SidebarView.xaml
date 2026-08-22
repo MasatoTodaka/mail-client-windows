@@ -43,13 +43,17 @@
                                 Margin="0,4,0,0"
                                 Visibility="{x:Bind ErrorMessage, Mode=OneWay, Converter={StaticResource StringToVisibilityConverter}}" />
 
-                            <ItemsControl ItemsSource="{x:Bind Folders}" Margin="12,4,0,0">
-                                <ItemsControl.ItemTemplate>
+                            <ListView
+                                ItemsSource="{x:Bind Folders}"
+                                Margin="12,4,0,0"
+                                SelectionMode="Single"
+                                SelectionChanged="OnFolderSelectionChanged">
+                                <ListView.ItemTemplate>
                                     <DataTemplate x:DataType="model:MailFolder">
                                         <TextBlock Text="{x:Bind DisplayName}" Margin="0,2,0,2" />
                                     </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
+                                </ListView.ItemTemplate>
+                            </ListView>
                         </StackPanel>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>

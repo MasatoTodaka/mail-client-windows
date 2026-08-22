@@ -10,8 +10,8 @@
 
     <!--
         M0: static 3-pane placeholder shell (sidebar / message list / reading pane), matching
-        macOS Mail's fixed layout proportions. Sidebar got real content (accounts/folders) in M3;
-        message list / reading pane land the same way in M4/M5.
+        macOS Mail's fixed layout proportions. Sidebar (M3) and message list (M4) got real
+        content; reading pane lands the same way in M5.
     -->
     <Grid x:Name="RootGrid">
         <Grid.ColumnDefinitions>
@@ -21,16 +21,11 @@
         </Grid.ColumnDefinitions>
 
         <Border Grid.Column="0" BorderThickness="0,0,1,0" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
-            <shell:SidebarView Margin="16" />
+            <shell:SidebarView x:Name="Sidebar" Margin="16" />
         </Border>
 
         <Border Grid.Column="1" BorderThickness="0,0,1,0" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
-            <TextBlock
-                Margin="16"
-                VerticalAlignment="Top"
-                TextWrapping="Wrap"
-                Text="{x:Bind ViewModel.MessageListPlaceholderText}"
-                Style="{StaticResource BodyTextBlockStyle}" />
+            <shell:MessageListView x:Name="MessageList" />
         </Border>
 
         <TextBlock

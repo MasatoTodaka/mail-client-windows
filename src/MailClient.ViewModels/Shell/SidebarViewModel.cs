@@ -7,14 +7,21 @@ using MailClient.ViewModels.Common;
 
 namespace MailClient.ViewModels.Shell;
 
-// M3: connects on demand and lists real folders. Live sync (headers/bodies/IDLE) lands M4+.
+// M3: connects on demand and lists real folders. M4: kicks off INBOX header sync once folders
+// are known, and reports which folder the user selected so MessageListViewModel can load it.
 public sealed partial class SidebarViewModel(
     IAccountStore accountStore,
     IFolderStore folderStore,
     ICredentialStore credentialStore,
+    IMailSyncService mailSyncService,
     Func<IImapAccountClient> imapClientFactory) : ViewModelBase
 {
     public ObservableCollection<AccountNode> Accounts { get; } = [];
+
+    public event EventHandler<MailFolder>? FolderSelected;
+
+    [RelayCommand]
+    private void SelectFolder(MailFolder folder) => FolderSelected?.Invoke(this, folder);
 
     [RelayCommand]
     public async Task LoadAsync()
@@ -55,6 +62,10 @@ public sealed partial class SidebarViewModel(
                 await folderStore.SaveAsync(folderToSave, CancellationToken.None);
                 node.Folders.Add(folderToSave);
             }
+
+            // Fire-and-forget: warms up INBOX so it's ready by the time the user clicks it.
+            // MessageListViewModel syncs on-demand too, so a race here just means a redundant sync.
+            _ = mailSyncService.InitialSyncAsync(node.Account.Id, CancellationToken.None);
         }
         catch (Exception ex)
         {
