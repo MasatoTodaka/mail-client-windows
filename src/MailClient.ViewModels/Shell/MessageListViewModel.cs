@@ -19,12 +19,14 @@ public sealed partial class MessageListViewModel : ViewModelBase
 
     private readonly IMessageStore _messageStore;
     private readonly IMailSyncService _syncService;
+    private readonly IUiDispatcher _uiDispatcher;
     private MailFolder? _currentFolder;
 
-    public MessageListViewModel(IMessageStore messageStore, IMailSyncService syncService)
+    public MessageListViewModel(IMessageStore messageStore, IMailSyncService syncService, IUiDispatcher uiDispatcher)
     {
         _messageStore = messageStore;
         _syncService = syncService;
+        _uiDispatcher = uiDispatcher;
         _syncService.MessageArrived += OnMessageArrived;
     }
 
@@ -77,9 +79,14 @@ public sealed partial class MessageListViewModel : ViewModelBase
             Messages.Add(message);
     }
 
-    private async void OnMessageArrived(object? sender, MessageArrivedEventArgs e)
+    // May fire from the IMAP IDLE watcher's background thread, so everything here — including
+    // reading _currentFolder — must run after the hop back onto the UI thread.
+    private void OnMessageArrived(object? sender, MessageArrivedEventArgs e)
     {
-        if (_currentFolder is not null && e.Message.FolderId == _currentFolder.Id)
-            await RefreshCurrentAsync();
+        _uiDispatcher.Post(() =>
+        {
+            if (_currentFolder is not null && e.Message.FolderId == _currentFolder.Id)
+                _ = RefreshCurrentAsync();
+        });
     }
 }
