@@ -3,6 +3,7 @@ using MailClient.Core.Abstractions;
 using MailClient.Data;
 using MailClient.Data.Repositories;
 using MailClient.Mail.Imap;
+using MailClient.Mail.Smtp;
 using MailClient.Mail.Sync;
 using MailClient.ViewModels.AccountSetup;
 using MailClient.ViewModels.Compose;
@@ -31,6 +32,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IMailSyncService, MailSyncService>();
         services.AddSingleton<IOutboxStore, OutboxRepository>();
         services.AddSingleton<IOutboxProcessor, OutboxProcessor>();
+        services.AddSingleton<ISmtpSender, SmtpSender>();
 
         // IImapAccountClient wraps one connection, not shared state — resolve a fresh instance
         // per account via this factory rather than injecting the interface directly.
@@ -44,7 +46,6 @@ public static class ServiceCollectionExtensions
         services.AddTransient<ReadingPaneViewModel>();
         services.AddTransient<ComposeViewModel>();
 
-        // M7+: ISmtpSender -> MailClient.Mail implementation
         // ICredentialStore / INotificationService are Windows-only; registered by MailClient.App itself.
 
         return services;

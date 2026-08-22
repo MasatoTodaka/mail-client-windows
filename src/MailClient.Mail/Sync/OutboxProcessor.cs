@@ -4,15 +4,16 @@ using MailClient.Core.Models;
 
 namespace MailClient.Mail.Sync;
 
-// Replays queued mutations (flag/read state, move, delete) against the server once connectivity
-// is available. Each action is attempted independently — one failure doesn't block the rest —
-// and a succeeded action is removed from the queue by IOutboxStore.MarkSucceededAsync.
+// Replays queued mutations (flag/read state, move, delete, send) against the server once
+// connectivity is available. Each action is attempted independently — one failure doesn't block
+// the rest — and a succeeded action is removed from the queue by IOutboxStore.MarkSucceededAsync.
 public sealed class OutboxProcessor(
     IAccountStore accountStore,
     IFolderStore folderStore,
     IMessageStore messageStore,
     IOutboxStore outboxStore,
     ICredentialStore credentialStore,
+    ISmtpSender smtpSender,
     Func<IImapAccountClient> imapClientFactory) : IOutboxProcessor
 {
     public async Task ProcessAsync(Guid accountId, CancellationToken ct)
@@ -41,7 +42,7 @@ public sealed class OutboxProcessor(
         {
             try
             {
-                await ApplyAsync(client, action, ct);
+                await ApplyAsync(client, account, action, ct);
                 await outboxStore.MarkSucceededAsync(action.Id, ct);
             }
             catch (Exception ex)
@@ -53,7 +54,7 @@ public sealed class OutboxProcessor(
         await client.DisconnectAsync();
     }
 
-    private async Task ApplyAsync(IImapAccountClient client, OutboxAction action, CancellationToken ct)
+    private async Task ApplyAsync(IImapAccountClient client, Account account, OutboxAction action, CancellationToken ct)
     {
         switch (action.Type)
         {
@@ -73,7 +74,8 @@ public sealed class OutboxProcessor(
                 break;
 
             case OutboxActionType.SendMessage:
-                throw new NotSupportedException("SMTP送信はM7で実装予定のため、まだ処理できません。");
+                await ApplySendMessageAsync(client, account, action, ct);
+                break;
 
             case OutboxActionType.Append:
                 throw new NotSupportedException("Appendは未実装です。");
@@ -122,6 +124,40 @@ public sealed class OutboxProcessor(
     {
         var (folderFullName, uid) = await ResolveMessageRefAsync(action, ct);
         await client.DeleteAsync(folderFullName, uid, ct);
+    }
+
+    private async Task ApplySendMessageAsync(IImapAccountClient client, Account account, OutboxAction action, CancellationToken ct)
+    {
+        if (action.PayloadJson is null)
+            throw new InvalidOperationException("Outboxアクションに送信内容がありません。");
+
+        var payload = JsonSerializer.Deserialize<OutboxSendPayload>(action.PayloadJson)
+            ?? throw new InvalidOperationException("送信内容を読み取れません。");
+        if (!File.Exists(payload.EmlFilePath))
+            throw new InvalidOperationException("送信するメッセージファイルが見つかりません。");
+
+        var smtpPassword = credentialStore.GetSmtpPassword(account.Id)
+            ?? throw new SmtpAuthenticationException("SMTP用の保存されたパスワードが見つかりません。");
+
+        var mimeBytes = await File.ReadAllBytesAsync(payload.EmlFilePath, ct);
+        await smtpSender.SendAsync(account, smtpPassword, mimeBytes, ct);
+
+        // Best-effort: file a copy in Sent. The message is already delivered at this point, so a
+        // missing Sent folder or a server that refuses the APPEND must not turn into a retry
+        // (which would resend the message) — swallow and move on.
+        try
+        {
+            var folders = await folderStore.GetByAccountAsync(account.Id, ct);
+            var sent = folders.FirstOrDefault(f => f.SpecialUse == MailFolderSpecialUse.Sent);
+            if (sent?.ImapFullName is not null)
+                await client.AppendAsync(sent.ImapFullName, mimeBytes, ct);
+        }
+        catch
+        {
+            // Ignored — see comment above.
+        }
+
+        File.Delete(payload.EmlFilePath);
     }
 
     private async Task<(string FolderFullName, uint Uid)> ResolveMessageRefAsync(OutboxAction action, CancellationToken ct)

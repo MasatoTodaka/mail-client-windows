@@ -65,7 +65,7 @@ public sealed class ImapAccountClient : IImapAccountClient
                 AccountId = _accountId,
                 ImapFullName = folder.FullName,
                 DisplayName = folder.Name,
-                SpecialUse = MapSpecialUse(folder.Attributes),
+                SpecialUse = MapSpecialUse(folder.Attributes, folder.Name),
             });
         }
         return result;
@@ -153,7 +153,7 @@ public sealed class ImapAccountClient : IImapAccountClient
         await folder.AppendAsync(message, MessageFlags.Seen, ct);
     }
 
-    private static MailFolderSpecialUse MapSpecialUse(FolderAttributes attributes)
+    private static MailFolderSpecialUse MapSpecialUse(FolderAttributes attributes, string displayName)
     {
         if (attributes.HasFlag(FolderAttributes.Inbox)) return MailFolderSpecialUse.Inbox;
         if (attributes.HasFlag(FolderAttributes.Sent)) return MailFolderSpecialUse.Sent;
@@ -161,7 +161,21 @@ public sealed class ImapAccountClient : IImapAccountClient
         if (attributes.HasFlag(FolderAttributes.Trash)) return MailFolderSpecialUse.Trash;
         if (attributes.HasFlag(FolderAttributes.Junk)) return MailFolderSpecialUse.Junk;
         if (attributes.HasFlag(FolderAttributes.Archive)) return MailFolderSpecialUse.Archive;
-        return MailFolderSpecialUse.None;
+
+        // Some servers (e.g. iCloud) don't advertise RFC 6154 SPECIAL-USE attributes at all —
+        // fall back to conventional folder names, same as most real-world mail clients do.
+        // Where a server exposes more than one plausible name (e.g. both "Sent Items" and
+        // "Sent Messages"), prefer the legacy Apple/Cyrus-style name since it's the one iCloud
+        // actually files mail into.
+        return displayName switch
+        {
+            "Sent Messages" or "Sent" => MailFolderSpecialUse.Sent,
+            "Deleted Messages" or "Trash" => MailFolderSpecialUse.Trash,
+            "Drafts" => MailFolderSpecialUse.Drafts,
+            "Junk" or "Junk E-mail" or "迷惑メール" => MailFolderSpecialUse.Junk,
+            "Archive" or "All Mail" => MailFolderSpecialUse.Archive,
+            _ => MailFolderSpecialUse.None,
+        };
     }
 
     private MailMessage MapSummary(IMessageSummary summary) => new()

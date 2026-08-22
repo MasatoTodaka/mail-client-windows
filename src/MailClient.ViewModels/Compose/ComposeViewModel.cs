@@ -91,6 +91,7 @@ public sealed partial class ComposeViewModel(
         try
         {
             var mimeMessage = new MimeMessage();
+            mimeMessage.Date = DateTimeOffset.Now;
             mimeMessage.From.Add(MailboxAddress.Parse(account.EmailAddress));
             foreach (var address in SplitAddresses(To))
                 mimeMessage.To.Add(MailboxAddress.Parse(address));
