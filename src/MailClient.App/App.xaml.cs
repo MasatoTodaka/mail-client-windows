@@ -197,6 +197,29 @@ public partial class App : Application
         {
             // Best-effort feature; must not take the app down.
         }
+
+        // Mail rules: files new mail into a folder automatically per the sender/subject rules
+        // the user configured. Runs regardless of window focus, same reasoning as OTP auto-copy.
+        try
+        {
+            var syncService = Services.GetRequiredService<IMailSyncService>();
+            var ruleEngine = Services.GetRequiredService<IMailRuleEngine>();
+            syncService.MessageArrived += async (_, e) =>
+            {
+                try
+                {
+                    await ruleEngine.TryApplyAsync(e.Message, CancellationToken.None);
+                }
+                catch
+                {
+                    // Best-effort: a failed rule application must never disturb sync.
+                }
+            };
+        }
+        catch
+        {
+            // Best-effort feature; must not take the app down.
+        }
     }
 
     private static string StripHtmlTags(string html) =>

@@ -10,6 +10,10 @@ public interface IMessageStore
     Task<uint?> GetMinUidAsync(Guid folderId, CancellationToken ct);
     Task<(int Total, int Unread)> GetFolderCountsAsync(Guid folderId, CancellationToken ct);
 
+    // Every locally-known message across all of an account's folders — used to apply mail rules
+    // retroactively ("run now"), not for normal list display (which pages per folder).
+    Task<IReadOnlyList<MailMessage>> GetByAccountAsync(Guid accountId, CancellationToken ct);
+
     // One-time local cleanup: re-runs MojibakeFixer over every cached subject and rewrites
     // any that change. Needed because the fixer only runs on freshly-fetched headers going
     // forward — this catches subjects that were cached before the fixer existed. Returns the

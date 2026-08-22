@@ -38,6 +38,10 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
+            <TextBlock Text="仕分けルール" Style="{ThemeResource SubtitleTextBlockStyle}" Margin="0,16,0,0" />
+            <TextBlock Text="送信者や件名の条件でメールを自動的にフォルダへ振り分けます。" Opacity="0.7" TextWrapping="Wrap" />
+            <Button Content="仕分けルールを管理..." Click="OnManageRulesClick" HorizontalAlignment="Left" />
+
         </StackPanel>
     </ScrollViewer>
 </Window>

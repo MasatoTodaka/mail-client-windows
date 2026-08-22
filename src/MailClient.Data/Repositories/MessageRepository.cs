@@ -80,6 +80,21 @@ public sealed class MessageRepository(MailDbContext db) : IMessageStore
         return (total, unread);
     }
 
+    public async Task<IReadOnlyList<MailMessage>> GetByAccountAsync(Guid accountId, CancellationToken ct)
+    {
+        await using var connection = db.CreateConnection();
+        await connection.OpenAsync(ct);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT * FROM messages WHERE account_id = $accountId;";
+        command.Parameters.AddWithValue("$accountId", accountId.ToString());
+
+        var messages = new List<MailMessage>();
+        await using var reader = await command.ExecuteReaderAsync(ct);
+        while (await reader.ReadAsync(ct))
+            messages.Add(Map(reader));
+        return messages;
+    }
+
     public async Task<int> FixMojibakeSubjectsAsync(CancellationToken ct)
     {
         var toFix = new List<(string Id, string Subject)>();

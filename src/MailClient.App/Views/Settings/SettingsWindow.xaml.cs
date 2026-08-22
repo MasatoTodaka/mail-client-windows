@@ -1,5 +1,8 @@
+using MailClient.App.Views.Rules;
 using MailClient.Core.Models;
+using MailClient.ViewModels.Rules;
 using MailClient.ViewModels.Settings;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
@@ -36,5 +39,12 @@ public sealed partial class SettingsWindow : Window
 
         if (await confirm.ShowAsync() == ContentDialogResult.Primary)
             await ViewModel.DeleteAccountCommand.ExecuteAsync(account);
+    }
+
+    private void OnManageRulesClick(object sender, RoutedEventArgs e)
+    {
+        var rulesViewModel = App.Services.GetRequiredService<RulesViewModel>();
+        var rulesWindow = new RulesWindow(rulesViewModel);
+        rulesWindow.Activate();
     }
 }
