@@ -12,6 +12,7 @@
     <UserControl.Resources>
         <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
         <converters:IntToVisibilityConverter x:Key="IntToVisibilityConverter" />
+        <converters:SpecialUseToGlyphConverter x:Key="SpecialUseToGlyphConverter" />
     </UserControl.Resources>
 
     <Grid>
@@ -91,14 +92,21 @@
                                 DragItemsCompleted="OnFolderDragItemsCompleted">
                                 <ListView.ItemTemplate>
                                     <DataTemplate x:DataType="model:MailFolder">
-                                        <Grid ColumnSpacing="6" AutomationProperties.Name="{x:Bind DisplayName}">
+                                        <Grid ColumnSpacing="8" AutomationProperties.Name="{x:Bind DisplayName}">
                                             <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="{x:Bind DisplayName}" Margin="0,2,0,2" />
+                                            <FontIcon
+                                                Grid.Column="0"
+                                                Glyph="{x:Bind SpecialUse, Converter={StaticResource SpecialUseToGlyphConverter}}"
+                                                FontSize="14"
+                                                Opacity="0.7"
+                                                VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="1" Text="{x:Bind DisplayName}" Margin="0,2,0,2" />
                                             <TextBlock
-                                                Grid.Column="1"
+                                                Grid.Column="2"
                                                 Text="{x:Bind UnreadCount}"
                                                 Opacity="0.7"
                                                 VerticalAlignment="Center"

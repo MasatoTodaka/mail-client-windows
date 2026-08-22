@@ -18,57 +18,84 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <StackPanel
+        <Border
             Grid.Row="0"
-            Orientation="Horizontal"
-            Spacing="8"
-            Margin="16,12,16,0"
+            BorderThickness="0,0,0,1"
+            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+            Padding="16,12,16,12"
             Visibility="{x:Bind ViewModel.SelectedMessage, Mode=OneWay, Converter={StaticResource ObjectToVisibilityConverter}}">
-            <Button Click="OnReplyClick" ToolTipService.ToolTip="返信" AutomationProperties.Name="返信">
-                <FontIcon Glyph="&#xE165;" />
-            </Button>
-            <Button Click="OnReplyAllClick" ToolTipService.ToolTip="全員に返信" AutomationProperties.Name="全員に返信">
-                <FontIcon Glyph="&#xE716;" />
-            </Button>
-            <Button Click="OnForwardClick" ToolTipService.ToolTip="転送" AutomationProperties.Name="転送">
-                <FontIcon Glyph="&#xE72A;" />
-            </Button>
-            <Button Command="{x:Bind ViewModel.ToggleFlagCommand}" ToolTipService.ToolTip="フラグ" AutomationProperties.Name="フラグ">
-                <FontIcon Glyph="&#xE129;" />
-            </Button>
-            <Button Command="{x:Bind ViewModel.DeleteCommand}" ToolTipService.ToolTip="削除" AutomationProperties.Name="削除">
-                <FontIcon Glyph="&#xE74D;" />
-            </Button>
-            <Button Command="{x:Bind ViewModel.ArchiveCommand}" ToolTipService.ToolTip="アーカイブ" AutomationProperties.Name="アーカイブ">
-                <FontIcon Glyph="&#xE7B8;" />
-            </Button>
-        </StackPanel>
+            <StackPanel Spacing="10">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button Click="OnReplyClick" ToolTipService.ToolTip="返信" AutomationProperties.Name="返信">
+                        <FontIcon Glyph="&#xE165;" />
+                    </Button>
+                    <Button Click="OnReplyAllClick" ToolTipService.ToolTip="全員に返信" AutomationProperties.Name="全員に返信">
+                        <FontIcon Glyph="&#xE716;" />
+                    </Button>
+                    <Button Click="OnForwardClick" ToolTipService.ToolTip="転送" AutomationProperties.Name="転送">
+                        <FontIcon Glyph="&#xE72A;" />
+                    </Button>
+                    <Button Command="{x:Bind ViewModel.ToggleFlagCommand}" ToolTipService.ToolTip="フラグ" AutomationProperties.Name="フラグ">
+                        <FontIcon Glyph="&#xE129;" />
+                    </Button>
+                    <Button Command="{x:Bind ViewModel.DeleteCommand}" ToolTipService.ToolTip="削除" AutomationProperties.Name="削除">
+                        <FontIcon Glyph="&#xE74D;" />
+                    </Button>
+                    <Button Command="{x:Bind ViewModel.ArchiveCommand}" ToolTipService.ToolTip="アーカイブ" AutomationProperties.Name="アーカイブ">
+                        <FontIcon Glyph="&#xE7B8;" />
+                    </Button>
+                </StackPanel>
 
-        <StackPanel Grid.Row="1" Margin="16,12,16,8" Spacing="2">
-            <TextBlock
-                Text="{x:Bind ViewModel.SelectedMessage.Subject, Mode=OneWay}"
-                Style="{ThemeResource SubtitleTextBlockStyle}"
-                TextWrapping="Wrap" />
-            <TextBlock Opacity="0.8">
-                <Run Text="{x:Bind ViewModel.SelectedMessage.FromDisplay, Mode=OneWay}" />
-                <Run Text=" ・ " />
-                <Run Text="{x:Bind ViewModel.SelectedMessage.Date, Mode=OneWay, Converter={StaticResource DateTimeOffsetToShortStringConverter}}" />
-            </TextBlock>
-            <TextBlock
-                Text="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}"
-                Foreground="{ThemeResource SystemFillColorCriticalBrush}"
-                TextWrapping="Wrap"
-                Visibility="{x:Bind ViewModel.ErrorMessage, Mode=OneWay, Converter={StaticResource StringToVisibilityConverter}}" />
-            <ProgressRing IsActive="{x:Bind ViewModel.IsBusy, Mode=OneWay}" HorizontalAlignment="Left" Width="16" Height="16" />
-        </StackPanel>
+                <TextBlock
+                    Text="{x:Bind ViewModel.SelectedMessage.Subject, Mode=OneWay}"
+                    Style="{ThemeResource SubtitleTextBlockStyle}"
+                    TextWrapping="Wrap" />
+
+                <Grid ColumnSpacing="10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Border
+                        Grid.Column="0"
+                        Width="36"
+                        Height="36"
+                        CornerRadius="18"
+                        Background="{x:Bind SenderAvatarColor(ViewModel.SelectedMessage.FromDisplay), Mode=OneWay}">
+                        <TextBlock
+                            Text="{x:Bind SenderInitial(ViewModel.SelectedMessage.FromDisplay), Mode=OneWay}"
+                            Foreground="White"
+                            FontWeight="SemiBold"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center" />
+                    </Border>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="{x:Bind ViewModel.SelectedMessage.FromDisplay, Mode=OneWay}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{x:Bind ViewModel.SelectedMessage.FromAddress, Mode=OneWay}" Opacity="0.6" FontSize="12" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                    <TextBlock
+                        Grid.Column="2"
+                        Text="{x:Bind ViewModel.SelectedMessage.Date, Mode=OneWay, Converter={StaticResource DateTimeOffsetToShortStringConverter}}"
+                        Opacity="0.6"
+                        VerticalAlignment="Top" />
+                </Grid>
+
+                <TextBlock
+                    Text="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}"
+                    Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                    TextWrapping="Wrap"
+                    Visibility="{x:Bind ViewModel.ErrorMessage, Mode=OneWay, Converter={StaticResource StringToVisibilityConverter}}" />
+                <ProgressRing IsActive="{x:Bind ViewModel.IsBusy, Mode=OneWay}" HorizontalAlignment="Left" Width="16" Height="16" />
+            </StackPanel>
+        </Border>
 
         <InfoBar
-            Grid.Row="2"
-            Margin="16,0,16,8"
+            Grid.Row="1"
+            Margin="16,8,16,0"
             IsOpen="{x:Bind ViewModel.HasBlockedRemoteImages, Mode=OneWay}"
             Severity="Informational"
             Title="リモート画像をブロックしました"
@@ -78,7 +105,7 @@
             </InfoBar.ActionButton>
         </InfoBar>
 
-        <Grid Grid.Row="3">
+        <Grid Grid.Row="2">
             <ScrollViewer Visibility="{x:Bind IsPlainTextVisible(ViewModel.IsHtml), Mode=OneWay}">
                 <TextBlock
                     Margin="16,0,16,16"
