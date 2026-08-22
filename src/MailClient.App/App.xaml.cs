@@ -29,6 +29,7 @@ public partial class App : Application
                 // because only this project (net8.0-windows) can see MailClient.Platform.
                 services.AddSingleton<ICredentialStore, CredentialLockerStore>();
                 services.AddSingleton<INotificationService, AppNotificationService>();
+                services.AddSingleton<IClipboardService, ClipboardService>();
 
                 // Captured lazily: first resolution happens during MainWindow's construction in
                 // OnLaunched, which runs on the UI thread, so GetForCurrentThread() returns the
@@ -126,5 +127,78 @@ public partial class App : Application
         {
             // Notifications are a nice-to-have; a registration failure must not take the app down.
         }
+
+        // OTP auto-copy: runs regardless of whether the window is active (unlike the new-mail
+        // toast above) — the user may well be sitting in the app when the code arrives and still
+        // want it on the clipboard to paste elsewhere.
+        try
+        {
+            var syncService = Services.GetRequiredService<IMailSyncService>();
+            var folderStore = Services.GetRequiredService<IFolderStore>();
+            var accountStore = Services.GetRequiredService<IAccountStore>();
+            var credentialStore = Services.GetRequiredService<ICredentialStore>();
+            var imapClientFactory = Services.GetRequiredService<Func<IImapAccountClient>>();
+            var settingsStore = Services.GetRequiredService<ISettingsStore>();
+            var clipboard = Services.GetRequiredService<IClipboardService>();
+            var uiDispatcher = Services.GetRequiredService<IUiDispatcher>();
+            var notifications = Services.GetRequiredService<INotificationService>();
+
+            syncService.MessageArrived += async (_, e) =>
+            {
+                try
+                {
+                    if (!await settingsStore.GetOtpAutoCopyEnabledAsync(CancellationToken.None))
+                        return;
+
+                    // Cheap check first: many senders put the code in the subject too, which
+                    // avoids an extra IMAP round trip for those.
+                    var code = OtpCodeDetector.TryExtract(e.Message.Subject, null);
+
+                    if (code is null)
+                    {
+                        var folder = await folderStore.GetByIdAsync(e.Message.FolderId, CancellationToken.None);
+                        var account = await accountStore.GetByIdAsync(e.Message.AccountId, CancellationToken.None);
+                        var password = account is null ? null : credentialStore.GetImapPassword(account.Id);
+                        if (folder?.ImapFullName is null || account is null || password is null)
+                            return;
+
+                        using var client = imapClientFactory();
+                        await client.ConnectAsync(account, password, CancellationToken.None);
+                        var (text, html) = await client.FetchBodyAsync(folder.ImapFullName, e.Message.Uid, CancellationToken.None);
+                        await client.DisconnectAsync();
+
+                        var bodyText = text ?? (html is null ? null : StripHtmlTags(html));
+                        code = OtpCodeDetector.TryExtract(e.Message.Subject, bodyText);
+                    }
+
+                    if (code is null)
+                        return;
+
+                    uiDispatcher.Post(() =>
+                    {
+                        clipboard.SetText(code);
+                        try
+                        {
+                            notifications.ShowOtpCopiedNotification();
+                        }
+                        catch
+                        {
+                            // A failed toast is not worth losing the clipboard copy over.
+                        }
+                    });
+                }
+                catch
+                {
+                    // Best-effort: OTP detection must never disturb sync.
+                }
+            };
+        }
+        catch
+        {
+            // Best-effort feature; must not take the app down.
+        }
     }
+
+    private static string StripHtmlTags(string html) =>
+        System.Text.RegularExpressions.Regex.Replace(html, "<[^>]+>", " ");
 }

@@ -5,6 +5,7 @@ namespace MailClient.Data.Repositories;
 public sealed class SettingsRepository(MailDbContext db) : ISettingsStore
 {
     private const string NotificationsEnabledKey = "notifications_enabled";
+    private const string OtpAutoCopyEnabledKey = "otp_autocopy_enabled";
 
     public async Task<bool> GetNotificationsEnabledAsync(CancellationToken ct)
     {
@@ -14,6 +15,15 @@ public sealed class SettingsRepository(MailDbContext db) : ISettingsStore
 
     public Task SetNotificationsEnabledAsync(bool enabled, CancellationToken ct) =>
         SetAsync(NotificationsEnabledKey, enabled ? "1" : "0", ct);
+
+    public async Task<bool> GetOtpAutoCopyEnabledAsync(CancellationToken ct)
+    {
+        var value = await GetAsync(OtpAutoCopyEnabledKey, ct);
+        return value is null || value == "1"; // default: enabled
+    }
+
+    public Task SetOtpAutoCopyEnabledAsync(bool enabled, CancellationToken ct) =>
+        SetAsync(OtpAutoCopyEnabledKey, enabled ? "1" : "0", ct);
 
     private async Task<string?> GetAsync(string key, CancellationToken ct)
     {

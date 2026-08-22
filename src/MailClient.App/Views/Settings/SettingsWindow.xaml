@@ -17,6 +17,7 @@
 
             <TextBlock Text="通知" Style="{ThemeResource SubtitleTextBlockStyle}" />
             <ToggleSwitch Header="新着メールをデスクトップ通知で知らせる" IsOn="{x:Bind ViewModel.NotificationsEnabled, Mode=TwoWay}" />
+            <ToggleSwitch Header="ワンタイムパスワードを自動でクリップボードにコピーする" IsOn="{x:Bind ViewModel.OtpAutoCopyEnabled, Mode=TwoWay}" />
 
             <TextBlock Text="アカウント" Style="{ThemeResource SubtitleTextBlockStyle}" Margin="0,16,0,0" />
             <ItemsControl ItemsSource="{x:Bind ViewModel.Accounts}">

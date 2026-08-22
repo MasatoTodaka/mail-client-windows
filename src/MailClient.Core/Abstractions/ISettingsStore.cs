@@ -6,4 +6,7 @@ public interface ISettingsStore
 {
     Task<bool> GetNotificationsEnabledAsync(CancellationToken ct);
     Task SetNotificationsEnabledAsync(bool enabled, CancellationToken ct);
+
+    Task<bool> GetOtpAutoCopyEnabledAsync(CancellationToken ct);
+    Task SetOtpAutoCopyEnabledAsync(bool enabled, CancellationToken ct);
 }

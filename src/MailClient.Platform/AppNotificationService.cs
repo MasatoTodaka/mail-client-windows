@@ -34,6 +34,16 @@ public sealed class AppNotificationService : INotificationService
         AppNotificationManager.Default.Show(notification);
     }
 
+    public void ShowOtpCopiedNotification()
+    {
+        var notification = new AppNotificationBuilder()
+            .AddText("ワンタイムパスワードをコピーしました")
+            .AddText("クリップボードに貼り付けできます。")
+            .BuildNotification();
+
+        AppNotificationManager.Default.Show(notification);
+    }
+
     private void OnNotificationInvoked(AppNotificationManager sender, AppNotificationActivatedEventArgs args)
     {
         if (args.Arguments.TryGetValue(MessageIdArgument, out var idText) && Guid.TryParse(idText, out var messageId))
