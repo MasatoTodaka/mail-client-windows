@@ -72,6 +72,9 @@ public sealed partial class SidebarViewModel(
 
             // We just proved this account is reachable — drain anything queued while it wasn't.
             _ = outboxProcessor.ProcessAsync(node.Account.Id, CancellationToken.None);
+
+            // Start (or no-op if already running) IDLE/polling so new INBOX mail shows up live.
+            _ = mailSyncService.StartLiveUpdatesAsync(node.Account.Id, CancellationToken.None);
         }
         catch (Exception ex)
         {

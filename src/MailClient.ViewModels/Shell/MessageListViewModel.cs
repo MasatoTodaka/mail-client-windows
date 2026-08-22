@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MailClient.Core.Abstractions;
+using MailClient.Core.Events;
 using MailClient.Core.Models;
 using MailClient.ViewModels.Common;
 
@@ -10,11 +11,22 @@ namespace MailClient.ViewModels.Shell;
 // M4: loads (and, on first view, synchronizes) the selected folder's most recent headers.
 // M5: reports which message the user opened, and can be told to refresh (e.g. after the
 // reading pane marks a message read) so the list's unread styling stays in sync.
-public sealed partial class MessageListViewModel(IMessageStore messageStore, IMailSyncService syncService) : ViewModelBase
+// M8: also refreshes automatically when IMAP IDLE/polling reports a new message for whichever
+// folder is currently displayed.
+public sealed partial class MessageListViewModel : ViewModelBase
 {
     private const int PageSize = 200;
 
+    private readonly IMessageStore _messageStore;
+    private readonly IMailSyncService _syncService;
     private MailFolder? _currentFolder;
+
+    public MessageListViewModel(IMessageStore messageStore, IMailSyncService syncService)
+    {
+        _messageStore = messageStore;
+        _syncService = syncService;
+        _syncService.MessageArrived += OnMessageArrived;
+    }
 
     public ObservableCollection<MailMessage> Messages { get; } = [];
 
@@ -35,9 +47,9 @@ public sealed partial class MessageListViewModel(IMessageStore messageStore, IMa
         try
         {
             if (folder.LastSyncedAt is null)
-                await syncService.SyncFolderAsync(folder.Id, SyncDepth.RecentOnly, CancellationToken.None);
+                await _syncService.SyncFolderAsync(folder.Id, SyncDepth.RecentOnly, CancellationToken.None);
 
-            var messages = await messageStore.GetPageAsync(folder.Id, skip: 0, take: PageSize, CancellationToken.None);
+            var messages = await _messageStore.GetPageAsync(folder.Id, skip: 0, take: PageSize, CancellationToken.None);
             Messages.Clear();
             foreach (var message in messages)
                 Messages.Add(message);
@@ -59,9 +71,15 @@ public sealed partial class MessageListViewModel(IMessageStore messageStore, IMa
         if (_currentFolder is null)
             return;
 
-        var messages = await messageStore.GetPageAsync(_currentFolder.Id, skip: 0, take: PageSize, CancellationToken.None);
+        var messages = await _messageStore.GetPageAsync(_currentFolder.Id, skip: 0, take: PageSize, CancellationToken.None);
         Messages.Clear();
         foreach (var message in messages)
             Messages.Add(message);
+    }
+
+    private async void OnMessageArrived(object? sender, MessageArrivedEventArgs e)
+    {
+        if (_currentFolder is not null && e.Message.FolderId == _currentFolder.Id)
+            await RefreshCurrentAsync();
     }
 }

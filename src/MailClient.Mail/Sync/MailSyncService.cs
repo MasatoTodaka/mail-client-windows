@@ -1,6 +1,8 @@
+using System.Collections.Concurrent;
 using MailClient.Core.Abstractions;
 using MailClient.Core.Events;
 using MailClient.Core.Models;
+using MailClient.Mail.Imap;
 
 namespace MailClient.Mail.Sync;
 
@@ -12,6 +14,8 @@ public sealed class MailSyncService(
     Func<IImapAccountClient> imapClientFactory) : IMailSyncService
 {
     private const int RecentHeaderCount = 50;
+
+    private readonly ConcurrentDictionary<Guid, ImapIdleWatcher> _watchers = new();
 
     public event EventHandler<MessageArrivedEventArgs>? MessageArrived;
     public event EventHandler<SyncProgressEventArgs>? SyncProgressChanged;
@@ -60,6 +64,9 @@ public sealed class MailSyncService(
                 await messageStore.SaveAsync(toSave, ct);
                 if (!toSave.IsRead)
                     unreadCount++;
+
+                if (existing is null)
+                    MessageArrived?.Invoke(this, new MessageArrivedEventArgs(toSave));
             }
 
             // TotalCount here reflects locally-known messages after this partial sync, not the
@@ -91,11 +98,59 @@ public sealed class MailSyncService(
         }
     }
 
-    public Task StartLiveUpdatesAsync(Guid accountId, CancellationToken ct) =>
-        throw new NotSupportedException("ライブ更新(IMAP IDLE)はM8で実装予定です。");
+    public async Task StartLiveUpdatesAsync(Guid accountId, CancellationToken ct)
+    {
+        if (_watchers.ContainsKey(accountId))
+            return; // already watching
 
-    public Task StopLiveUpdatesAsync(Guid accountId) =>
-        throw new NotSupportedException("ライブ更新(IMAP IDLE)はM8で実装予定です。");
+        var account = await accountStore.GetByIdAsync(accountId, ct);
+        var password = account is null ? null : credentialStore.GetImapPassword(accountId);
+        if (account is null || password is null)
+            return;
+
+        var folders = await folderStore.GetByAccountAsync(accountId, ct);
+        var inbox = folders.FirstOrDefault(f => f.SpecialUse == MailFolderSpecialUse.Inbox)
+            ?? folders.FirstOrDefault(f => string.Equals(f.ImapFullName, "INBOX", StringComparison.OrdinalIgnoreCase));
+        if (inbox?.ImapFullName is null)
+            return;
+
+        var watcher = new ImapIdleWatcher();
+        watcher.FolderChanged += async (_, _) =>
+        {
+            try
+            {
+                await SyncFolderAsync(inbox.Id, SyncDepth.RecentOnly, CancellationToken.None);
+            }
+            catch
+            {
+                // SyncFolderAsync already reports this via SyncProgressChanged; the watcher loop
+                // itself must keep running regardless.
+            }
+        };
+
+        if (!_watchers.TryAdd(accountId, watcher))
+        {
+            await watcher.DisposeAsync();
+            return;
+        }
+
+        try
+        {
+            await watcher.StartAsync(account, password, inbox.ImapFullName, ct);
+        }
+        catch
+        {
+            _watchers.TryRemove(accountId, out _);
+            await watcher.DisposeAsync();
+            throw;
+        }
+    }
+
+    public async Task StopLiveUpdatesAsync(Guid accountId)
+    {
+        if (_watchers.TryRemove(accountId, out var watcher))
+            await watcher.DisposeAsync();
+    }
 
     // Keeps the message's local identity and any already-downloaded body across re-syncs of
     // the same (folder, uid) — re-fetching headers must not clobber M5's downloaded body state.
