@@ -1,7 +1,7 @@
 using MailClient.ViewModels.Shell;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.UI.Composition.SystemBackdrops;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Media;
 
 namespace MailClient.App;
 
