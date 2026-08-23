@@ -22,6 +22,10 @@ public sealed partial class MainWindow : Window
 
         SystemBackdrop = new MicaBackdrop();
 
+        // Packaged MSIX tile assets don't reliably drive a running window's own taskbar/title
+        // bar icon (that comes from the window's own icon resource), so set it explicitly.
+        AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "AppIcon.ico"));
+
         Activated += (_, e) => IsWindowActive = e.WindowActivationState != WindowActivationState.Deactivated;
 
         Sidebar.ViewModel.FolderSelected += async (_, folder) => await MessageList.ViewModel.LoadAsync(folder);

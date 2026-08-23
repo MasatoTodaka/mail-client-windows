@@ -9,7 +9,7 @@
   <Identity
     Name="MasatoToda.MailClient"
     Publisher="CN=MasatoToda"
-    Version="0.1.44.0" />
+    Version="0.1.45.0" />
 
   <mp:PhoneIdentity PhoneProductId="7f8f3a2e-6c1a-4e9a-9a2b-000000000000" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
