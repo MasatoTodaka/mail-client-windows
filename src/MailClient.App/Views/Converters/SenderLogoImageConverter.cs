@@ -1,6 +1,7 @@
 using MailClient.Core.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml.Data;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 
 namespace MailClient.App.Views.Converters;
@@ -24,9 +25,24 @@ public sealed class SenderLogoImageConverter : IValueConverter
         // logic changed in SenderLogoService.
         var senderLogoService = App.Services.GetRequiredService<ISenderLogoService>();
         var path = senderLogoService.GetCachedLogoPath(emailAddress);
-        return path is not null ? new BitmapImage(new Uri(path)) : null!;
+        return (object?)CreateImageSource(path) ?? null!;
     }
 
     public object ConvertBack(object value, Type targetType, object parameter, string language) =>
         throw new NotSupportedException();
+
+    // Shared with ReadingPaneView's code-behind logo update (which can't use an x:Bind converter
+    // since it isn't driven by a DataTemplate). Simple Icons entries are cached as .svg;
+    // Google-favicon fallbacks as .png -- SvgImageSource rasterizes on demand at whatever size the
+    // element actually renders at, so an .svg source never blurs or shows clip-edge aliasing the
+    // way a small upscaled .png can.
+    public static ImageSource? CreateImageSource(string? path)
+    {
+        if (path is null)
+            return null;
+
+        return Path.GetExtension(path).Equals(".svg", StringComparison.OrdinalIgnoreCase)
+            ? new SvgImageSource(new Uri(path))
+            : new BitmapImage(new Uri(path));
+    }
 }

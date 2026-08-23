@@ -1,4 +1,5 @@
 using MailClient.App.Views.Compose;
+using MailClient.App.Views.Converters;
 using MailClient.ViewModels.Compose;
 using MailClient.ViewModels.Shell;
 using Microsoft.Extensions.DependencyInjection;
@@ -6,7 +7,6 @@ using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Media.Imaging;
 
 namespace MailClient.App.Views.Shell;
 
@@ -39,7 +39,7 @@ public sealed partial class ReadingPaneView : UserControl
         }
 
         var path = await ViewModel.GetSenderLogoPathAsync(message.FromAddress);
-        SenderLogoBrush.ImageSource = path is null ? null : new BitmapImage(new Uri(path));
+        SenderLogoBrush.ImageSource = SenderLogoImageConverter.CreateImageSource(path);
         SenderLogoBacking.Background = path is null ? null : new SolidColorBrush(Colors.White);
     }
 

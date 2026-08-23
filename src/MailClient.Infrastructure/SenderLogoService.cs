@@ -8,7 +8,7 @@ public sealed class SenderLogoService(AppDataPaths appDataPaths, ISettingsStore 
 {
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(5) };
 
-    // Coalesces concurrent requests for the same domain — many message rows share a sender,
+    // Coalesces concurrent requests for the same domain/slug — many message rows share a sender,
     // and without this each one would kick off its own redundant download.
     private readonly ConcurrentDictionary<string, Task<string?>> _inFlight = new();
 
@@ -22,11 +22,21 @@ public sealed class SenderLogoService(AppDataPaths appDataPaths, ISettingsStore 
             return null;
 
         Directory.CreateDirectory(appDataPaths.LogosDirectory);
-        var path = CachePath(domain);
+
+        if (SimpleIconsSlugs.TryGetValue(domain, out var slug))
+        {
+            var svgPath = SvgCachePath(slug);
+            if (File.Exists(svgPath))
+                return svgPath;
+
+            return await _inFlight.GetOrAdd($"svg:{slug}", _ => FetchAndCacheSvgAsync(slug, svgPath, ct));
+        }
+
+        var path = FaviconCachePath(domain);
         if (File.Exists(path))
             return path;
 
-        return await _inFlight.GetOrAdd(domain, _ => FetchAndCacheAsync(domain, path, ct));
+        return await _inFlight.GetOrAdd(domain, _ => FetchAndCacheFaviconAsync(domain, path, ct));
     }
 
     public bool IsLogoCached(string emailAddress) => GetCachedLogoPath(emailAddress) is not null;
@@ -37,9 +47,66 @@ public sealed class SenderLogoService(AppDataPaths appDataPaths, ISettingsStore 
         if (domain is null)
             return null;
 
-        var path = CachePath(domain);
+        if (SimpleIconsSlugs.TryGetValue(domain, out var slug))
+        {
+            var svgPath = SvgCachePath(slug);
+            return File.Exists(svgPath) ? svgPath : null;
+        }
+
+        var path = FaviconCachePath(domain);
         return File.Exists(path) ? path : null;
     }
+
+    // Curated domain → Simple Icons (simpleicons.org) slug map for senders known to have a
+    // hand-drawn vector brand icon available — these render crisp at any size (no upscale blur,
+    // no clip-edge aliasing) since SvgImageSource rasterizes on demand at the actual display size,
+    // unlike the raster favicons FetchAndCacheFaviconAsync falls back to below. Every slug here was
+    // verified live against https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/{slug}.svg
+    // before being added; a domain with no entry (most senders, especially smaller/regional ones
+    // Simple Icons doesn't carry) just uses the existing favicon-based path unchanged.
+    //
+    // Keys are registrable domains (post-ToRegistrableDomain, matching ExtractDomain's output) —
+    // add new entries here as senders come up, not by domain guesswork.
+    private static readonly Dictionary<string, string> SimpleIconsSlugs = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["amazon.com"] = "amazon",
+        ["amazon.co.jp"] = "amazon",
+        ["google.com"] = "google",
+        ["uber.com"] = "uber",
+        ["microsoft.com"] = "microsoft",
+        ["rakuten.co.jp"] = "rakuten",
+        ["deepl.com"] = "deepl",
+        ["pagerduty.com"] = "pagerduty",
+        ["github.com"] = "github",
+        ["anthropic.com"] = "anthropic",
+        ["claude.ai"] = "claude",
+        ["openai.com"] = "openai",
+        ["discord.com"] = "discord",
+        ["trustpilot.com"] = "trustpilot",
+        ["trustpilotmail.com"] = "trustpilot",
+        ["kfc.co.jp"] = "kfc",
+        ["paypal.com"] = "paypal",
+        ["apple.com"] = "apple",
+        ["spotify.com"] = "spotify",
+        ["netflix.com"] = "netflix",
+        ["instagram.com"] = "instagram",
+        ["x.com"] = "x",
+        ["twitter.com"] = "x",
+        ["linkedin.com"] = "linkedin",
+        ["facebook.com"] = "facebook",
+        ["slack.com"] = "slack",
+        ["notion.so"] = "notion",
+        ["figma.com"] = "figma",
+        ["adobe.com"] = "adobe",
+        ["canva.com"] = "canva",
+        ["salesforce.com"] = "salesforce",
+        ["hubspot.com"] = "hubspot",
+        ["stripe.com"] = "stripe",
+        ["zoom.us"] = "zoom",
+        ["dropbox.com"] = "dropbox",
+        ["nvidia.com"] = "nvidia",
+        ["riotgames.com"] = "riotgames",
+    };
 
     // The cache filename bakes in the requested size so that bumping RequestedSize automatically
     // invalidates every previously-cached (lower-resolution) logo instead of silently continuing
@@ -47,9 +114,32 @@ public sealed class SenderLogoService(AppDataPaths appDataPaths, ISettingsStore 
     private const int RequestedSize = 256;
     private const string SizeSuffix = "-256";
 
-    private string CachePath(string domain) => Path.Combine(appDataPaths.LogosDirectory, $"{domain}{SizeSuffix}.png");
+    private string FaviconCachePath(string domain) => Path.Combine(appDataPaths.LogosDirectory, $"{domain}{SizeSuffix}.png");
+    private string SvgCachePath(string slug) => Path.Combine(appDataPaths.LogosDirectory, $"si-{slug}.svg");
 
-    private async Task<string?> FetchAndCacheAsync(string domain, string path, CancellationToken ct)
+    private async Task<string?> FetchAndCacheSvgAsync(string slug, string path, CancellationToken ct)
+    {
+        try
+        {
+            var url = $"https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/{Uri.EscapeDataString(slug)}.svg";
+            var bytes = await Http.GetByteArrayAsync(url, ct);
+            if (bytes.Length == 0)
+                return null;
+
+            await File.WriteAllBytesAsync(path, bytes, ct);
+            return path;
+        }
+        catch
+        {
+            return null;
+        }
+        finally
+        {
+            _inFlight.TryRemove($"svg:{slug}", out _);
+        }
+    }
+
+    private async Task<string?> FetchAndCacheFaviconAsync(string domain, string path, CancellationToken ct)
     {
         try
         {
@@ -62,6 +152,8 @@ public sealed class SenderLogoService(AppDataPaths appDataPaths, ISettingsStore 
             // smaller source to fill it, and that blur/aliasing was visible once actually
             // displayed. Asking for 256 gets the highest-resolution source Google has for the
             // domain, which then downscales cleanly to the small on-screen size instead.
+            // (Verified empirically: asking for even larger, e.g. 512, makes Google give up and
+            // return a generic 16x16 fallback instead of its best real size — 256 is the ceiling.)
             var url = $"https://www.google.com/s2/favicons?sz={RequestedSize}&domain={Uri.EscapeDataString(domain)}";
             var bytes = await Http.GetByteArrayAsync(url, ct);
             if (bytes.Length == 0)
@@ -84,8 +176,8 @@ public sealed class SenderLogoService(AppDataPaths appDataPaths, ISettingsStore 
     // subdomain of the company's real site (emagazine.rakuten.co.jp, ml.club.kfc.co.jp,
     // point.recruit.co.jp were all observed in a real mailbox) rather than the bare registrable
     // domain (rakuten.co.jp, kfc.co.jp, recruit.co.jp) that actually has a favicon Google can
-    // serve. Reducing to the registrable domain before querying turns those into logo hits
-    // instead of falling back to the colored-initial avatar.
+    // serve (and the one SimpleIconsSlugs above is keyed by). Reducing to the registrable domain
+    // before querying turns those into hits instead of falling back to the colored-initial avatar.
     //
     // This is a small heuristic, not a full Public Suffix List: it only recognizes the common
     // multi-label suffixes (co.jp and similar) that showed up in practice. A domain whose last
