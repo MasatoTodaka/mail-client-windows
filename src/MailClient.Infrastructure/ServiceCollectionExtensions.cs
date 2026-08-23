@@ -8,6 +8,7 @@ using MailClient.Mail.Rules;
 using MailClient.Mail.Smtp;
 using MailClient.Mail.Sync;
 using MailClient.ViewModels.AccountSetup;
+using MailClient.ViewModels.Common;
 using MailClient.ViewModels.Compose;
 using MailClient.ViewModels.Rules;
 using MailClient.ViewModels.Search;
@@ -47,6 +48,8 @@ public static class ServiceCollectionExtensions
         // per account via this factory rather than injecting the interface directly.
         services.AddTransient<IImapAccountClient, ImapAccountClient>();
         services.AddSingleton<Func<IImapAccountClient>>(sp => () => sp.GetRequiredService<IImapAccountClient>());
+
+        services.AddSingleton<MessageActionService>();
 
         services.AddTransient<MainViewModel>();
         services.AddTransient<AddAccountViewModel>();

@@ -246,6 +246,21 @@ public sealed class MailSyncService(
         }
     }
 
+    public async Task RefreshFlaggedFolderCountAsync(Guid accountId, CancellationToken ct)
+    {
+        var folders = await folderStore.GetByAccountAsync(accountId, ct);
+        var flaggedFolder = folders.FirstOrDefault(f => f.SpecialUse == MailFolderSpecialUse.Flagged);
+        if (flaggedFolder is null)
+            return;
+
+        var count = await messageStore.GetFlaggedCountAsync(accountId, ct);
+        if (count == flaggedFolder.TotalCount && count == flaggedFolder.UnreadCount)
+            return;
+
+        await folderStore.UpdateCountsAsync(flaggedFolder.Id, count, count, ct);
+        FolderCountsChanged?.Invoke(this, new FolderCountsChangedEventArgs(flaggedFolder.Id, count, count));
+    }
+
     public async Task StartLiveUpdatesAsync(Guid accountId, CancellationToken ct)
     {
         if (_watchers.ContainsKey(accountId))

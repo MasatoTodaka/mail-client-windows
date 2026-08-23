@@ -10,4 +10,5 @@ public enum MailFolderSpecialUse
     Junk,
     Archive,
     Outbox, // local-only pseudo-folder for queued outgoing mail
+    Flagged, // local-only virtual folder: aggregates flagged messages from every real folder
 }

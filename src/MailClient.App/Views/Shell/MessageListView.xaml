@@ -64,7 +64,7 @@
             </ListView.Footer>
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="model:MailMessage">
-                    <Grid Padding="16,10" ColumnSpacing="10" AutomationProperties.Name="{x:Bind Subject}">
+                    <Grid Padding="16,10" ColumnSpacing="10" AutomationProperties.Name="{x:Bind Subject}" ContextRequested="OnMessageContextRequested">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="16" />
                             <ColumnDefinition Width="*" />

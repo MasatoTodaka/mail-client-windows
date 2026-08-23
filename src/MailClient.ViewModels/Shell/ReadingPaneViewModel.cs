@@ -1,4 +1,3 @@
-using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MailClient.Core;
@@ -10,17 +9,17 @@ namespace MailClient.ViewModels.Shell;
 
 // M5: on-demand body fetch (cached to a local file, never re-downloaded once cached), HTML
 // rendered with remote images blocked by default, and read-state marking on open.
-// M6: flag/delete(→Trash)/archive act immediately on local state, then queue the matching
+// M6: flag/delete(→Trash)/archive delegate to MessageActionService (shared with the message
+// list's right-click menu), which acts immediately on local state then queues the matching
 // OutboxAction so the change survives being offline and replays once connectivity returns.
 public sealed partial class ReadingPaneViewModel(
     IMessageStore messageStore,
     IFolderStore folderStore,
     IAccountStore accountStore,
     ICredentialStore credentialStore,
-    IOutboxStore outboxStore,
-    IOutboxProcessor outboxProcessor,
     Func<IImapAccountClient> imapClientFactory,
-    AppDataPaths appDataPaths) : ViewModelBase
+    AppDataPaths appDataPaths,
+    MessageActionService messageActions) : ViewModelBase
 {
     private string? _rawHtml;
 
@@ -102,17 +101,7 @@ public sealed partial class ReadingPaneViewModel(
         if (message is null)
             return;
 
-        var newFlagged = !message.IsFlagged;
-        message.IsFlagged = newFlagged;
-        await messageStore.SetFlaggedAsync(message.Id, newFlagged, CancellationToken.None);
-
-        await EnqueueOutboxActionAsync(
-            message.AccountId,
-            newFlagged ? OutboxActionType.MarkFlagged : OutboxActionType.MarkUnflagged,
-            message.Id,
-            targetFolderId: null,
-            new OutboxMessageRef(message.FolderId, message.Uid));
-
+        await messageActions.ToggleFlagAsync(message, CancellationToken.None);
         MessageStateChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -129,29 +118,12 @@ public sealed partial class ReadingPaneViewModel(
             return;
 
         ErrorMessage = null;
-        var accountFolders = await folderStore.GetByAccountAsync(message.AccountId, CancellationToken.None);
-        var target = accountFolders.FirstOrDefault(f => f.SpecialUse == targetUse);
-        if (target is null)
+        var error = await messageActions.MoveToSpecialFolderAsync(message, targetUse, CancellationToken.None);
+        if (error is not null)
         {
-            ErrorMessage = $"{DescribeSpecialUse(targetUse)}フォルダが見つかりません。";
+            ErrorMessage = error;
             return;
         }
-        if (target.Id == message.FolderId)
-            return;
-
-        var sourceRef = new OutboxMessageRef(message.FolderId, message.Uid);
-        var sourceFolder = await folderStore.GetByIdAsync(message.FolderId, CancellationToken.None);
-
-        var moved = WithFolder(message, target.Id);
-        await messageStore.SaveAsync(moved, CancellationToken.None);
-
-        if (sourceFolder is not null)
-        {
-            var newUnread = message.IsRead ? sourceFolder.UnreadCount : Math.Max(0, sourceFolder.UnreadCount - 1);
-            await folderStore.UpdateCountsAsync(sourceFolder.Id, newUnread, Math.Max(0, sourceFolder.TotalCount - 1), CancellationToken.None);
-        }
-
-        await EnqueueOutboxActionAsync(message.AccountId, OutboxActionType.Move, message.Id, target.Id, sourceRef);
 
         SelectedMessage = null;
         PlainTextBody = null;
@@ -159,59 +131,6 @@ public sealed partial class ReadingPaneViewModel(
         IsHtml = false;
         MessageStateChanged?.Invoke(this, EventArgs.Empty);
     }
-
-    private async Task EnqueueOutboxActionAsync(
-        Guid accountId, OutboxActionType type, Guid? messageId, Guid? targetFolderId, OutboxMessageRef reference)
-    {
-        var action = new OutboxAction
-        {
-            Id = Guid.NewGuid(),
-            AccountId = accountId,
-            Type = type,
-            MessageId = messageId,
-            TargetFolderId = targetFolderId,
-            PayloadJson = JsonSerializer.Serialize(reference),
-            CreatedAt = DateTimeOffset.UtcNow,
-        };
-        await outboxStore.EnqueueAsync(action, CancellationToken.None);
-
-        // Best-effort immediate replay; if offline this just no-ops and stays queued.
-        _ = outboxProcessor.ProcessAsync(accountId, CancellationToken.None);
-    }
-
-    private static string DescribeSpecialUse(MailFolderSpecialUse use) => use switch
-    {
-        MailFolderSpecialUse.Trash => "ゴミ箱",
-        MailFolderSpecialUse.Archive => "アーカイブ",
-        _ => use.ToString(),
-    };
-
-    private static MailMessage WithFolder(MailMessage message, Guid folderId) => new()
-    {
-        Id = message.Id,
-        AccountId = message.AccountId,
-        FolderId = folderId,
-        Uid = message.Uid,
-        MessageId = message.MessageId,
-        InReplyTo = message.InReplyTo,
-        References = message.References,
-        Subject = message.Subject,
-        FromDisplay = message.FromDisplay,
-        FromAddress = message.FromAddress,
-        ToRecipients = message.ToRecipients,
-        CcRecipients = message.CcRecipients,
-        Date = message.Date,
-        Snippet = message.Snippet,
-        IsRead = message.IsRead,
-        IsFlagged = message.IsFlagged,
-        IsAnswered = message.IsAnswered,
-        IsDraft = message.IsDraft,
-        HasAttachments = message.HasAttachments,
-        Size = message.Size,
-        IsBodyDownloaded = message.IsBodyDownloaded,
-        BodyTextPath = message.BodyTextPath,
-        BodyHtmlPath = message.BodyHtmlPath,
-    };
 
     private void ApplyHtmlRendering()
     {
@@ -274,20 +193,5 @@ public sealed partial class ReadingPaneViewModel(
         return (text, html);
     }
 
-    private async Task MarkAsReadAsync(MailMessage message)
-    {
-        if (message.IsRead)
-            return;
-
-        message.IsRead = true;
-        await messageStore.SetReadAsync(message.Id, true, CancellationToken.None);
-
-        var folder = await folderStore.GetByIdAsync(message.FolderId, CancellationToken.None);
-        if (folder is not null && folder.UnreadCount > 0)
-            await folderStore.UpdateCountsAsync(folder.Id, folder.UnreadCount - 1, folder.TotalCount, CancellationToken.None);
-
-        await EnqueueOutboxActionAsync(
-            message.AccountId, OutboxActionType.MarkRead, message.Id,
-            targetFolderId: null, new OutboxMessageRef(message.FolderId, message.Uid));
-    }
+    private Task MarkAsReadAsync(MailMessage message) => messageActions.SetReadAsync(message, true, CancellationToken.None);
 }

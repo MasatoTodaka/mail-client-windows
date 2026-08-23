@@ -126,6 +126,24 @@ public sealed partial class SidebarViewModel : ViewModelBase
                 reconciled.Add(folderToSave);
             }
 
+            // "フラグ付き" is a local-only virtual folder (no ImapFullName) that aggregates
+            // flagged messages across every real folder — created once, then just re-included
+            // on every reconnect so its Id/SortOrder (and any future drag-reorder) stick.
+            var flaggedFolder = existingFolders.FirstOrDefault(f => f.SpecialUse == MailFolderSpecialUse.Flagged);
+            if (flaggedFolder is null)
+            {
+                flaggedFolder = new MailFolder
+                {
+                    Id = Guid.NewGuid(),
+                    AccountId = node.Account.Id,
+                    DisplayName = "フラグ付き",
+                    SpecialUse = MailFolderSpecialUse.Flagged,
+                    SortOrder = -1,
+                };
+                await _folderStore.SaveAsync(flaggedFolder, CancellationToken.None);
+            }
+            reconciled.Add(flaggedFolder);
+
             node.Folders.Clear();
             foreach (var folder in reconciled.OrderBy(f => f.SortOrder).ThenBy(f => f.DisplayName, StringComparer.Ordinal))
                 node.Folders.Add(folder);
@@ -139,6 +157,10 @@ public sealed partial class SidebarViewModel : ViewModelBase
             // STATUS, no header fetch) so folders the user hasn't opened yet aren't stuck
             // showing stale/zero counts.
             _ = _mailSyncService.SyncAllFolderCountsAsync(node.Account.Id, CancellationToken.None);
+
+            // Fire-and-forget: badges the virtual "フラグ付き" folder with the current local
+            // flagged count (pure local query, no IMAP needed).
+            _ = _mailSyncService.RefreshFlaggedFolderCountAsync(node.Account.Id, CancellationToken.None);
 
             // Fire-and-forget, one-time per account: corrects already-cached messages' sort
             // date to IMAP INTERNALDATE (actual received time) instead of the sender's Date:

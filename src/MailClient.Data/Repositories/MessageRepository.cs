@@ -63,6 +63,36 @@ public sealed class MessageRepository(MailDbContext db) : IMessageStore
         return result is null or DBNull ? null : (uint)Convert.ToInt64(result);
     }
 
+    public async Task<IReadOnlyList<MailMessage>> GetFlaggedPageAsync(Guid accountId, int skip, int take, CancellationToken ct)
+    {
+        await using var connection = db.CreateConnection();
+        await connection.OpenAsync(ct);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT * FROM messages WHERE account_id = $accountId AND is_flagged = 1
+            ORDER BY date DESC, uid DESC LIMIT $take OFFSET $skip;
+            """;
+        command.Parameters.AddWithValue("$accountId", accountId.ToString());
+        command.Parameters.AddWithValue("$take", take);
+        command.Parameters.AddWithValue("$skip", skip);
+
+        var messages = new List<MailMessage>();
+        await using var reader = await command.ExecuteReaderAsync(ct);
+        while (await reader.ReadAsync(ct))
+            messages.Add(Map(reader));
+        return messages;
+    }
+
+    public async Task<int> GetFlaggedCountAsync(Guid accountId, CancellationToken ct)
+    {
+        await using var connection = db.CreateConnection();
+        await connection.OpenAsync(ct);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT COUNT(*) FROM messages WHERE account_id = $accountId AND is_flagged = 1;";
+        command.Parameters.AddWithValue("$accountId", accountId.ToString());
+        return Convert.ToInt32(await command.ExecuteScalarAsync(ct));
+    }
+
     public async Task<(int Total, int Unread)> GetFolderCountsAsync(Guid folderId, CancellationToken ct)
     {
         await using var connection = db.CreateConnection();

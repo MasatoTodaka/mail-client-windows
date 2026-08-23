@@ -23,6 +23,10 @@ public interface IMailSyncService
     // its sort date reflects actual server arrival, not the sender's Date: header. No-ops once
     // already run for this account (tracked via ISettingsStore).
     Task BackfillReceivedDatesAsync(Guid accountId, CancellationToken ct);
+
+    // Recomputes the account's virtual "フラグ付き" folder badge (pure local count, no IMAP)
+    // and raises FolderCountsChanged. Call after any flag toggle.
+    Task RefreshFlaggedFolderCountAsync(Guid accountId, CancellationToken ct);
     Task StartLiveUpdatesAsync(Guid accountId, CancellationToken ct);
     Task StopLiveUpdatesAsync(Guid accountId);
 

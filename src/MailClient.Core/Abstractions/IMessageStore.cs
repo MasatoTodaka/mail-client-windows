@@ -10,6 +10,11 @@ public interface IMessageStore
     Task<uint?> GetMinUidAsync(Guid folderId, CancellationToken ct);
     Task<(int Total, int Unread)> GetFolderCountsAsync(Guid folderId, CancellationToken ct);
 
+    // Flagged messages across every real folder in the account — backs the virtual "フラグ付き"
+    // smart folder (aggregated view, not a real IMAP folder).
+    Task<IReadOnlyList<MailMessage>> GetFlaggedPageAsync(Guid accountId, int skip, int take, CancellationToken ct);
+    Task<int> GetFlaggedCountAsync(Guid accountId, CancellationToken ct);
+
     // Every locally-known message across all of an account's folders — used to apply mail rules
     // retroactively ("run now"), not for normal list display (which pages per folder).
     Task<IReadOnlyList<MailMessage>> GetByAccountAsync(Guid accountId, CancellationToken ct);

@@ -15,6 +15,7 @@ public sealed class SpecialUseToGlyphConverter : IValueConverter
                 MailFolderSpecialUse.Trash => "",
                 MailFolderSpecialUse.Junk => "",
                 MailFolderSpecialUse.Archive => "",
+                MailFolderSpecialUse.Flagged => "",
                 _ => "",
             }
             : "";
