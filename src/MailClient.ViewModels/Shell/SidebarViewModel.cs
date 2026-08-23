@@ -144,6 +144,23 @@ public sealed partial class SidebarViewModel : ViewModelBase
             }
             reconciled.Add(flaggedFolder);
 
+            // "今日" is the same kind of local-only virtual folder, aggregating messages
+            // received (IMAP INTERNALDATE) since local midnight across every real folder.
+            var todayFolder = existingFolders.FirstOrDefault(f => f.SpecialUse == MailFolderSpecialUse.Today);
+            if (todayFolder is null)
+            {
+                todayFolder = new MailFolder
+                {
+                    Id = Guid.NewGuid(),
+                    AccountId = node.Account.Id,
+                    DisplayName = "今日",
+                    SpecialUse = MailFolderSpecialUse.Today,
+                    SortOrder = -2,
+                };
+                await _folderStore.SaveAsync(todayFolder, CancellationToken.None);
+            }
+            reconciled.Add(todayFolder);
+
             node.Folders.Clear();
             foreach (var folder in reconciled.OrderBy(f => f.SortOrder).ThenBy(f => f.DisplayName, StringComparer.Ordinal))
                 node.Folders.Add(folder);
@@ -161,6 +178,9 @@ public sealed partial class SidebarViewModel : ViewModelBase
             // Fire-and-forget: badges the virtual "フラグ付き" folder with the current local
             // flagged count (pure local query, no IMAP needed).
             _ = _mailSyncService.RefreshFlaggedFolderCountAsync(node.Account.Id, CancellationToken.None);
+
+            // Fire-and-forget: badges the virtual "今日" folder (pure local query, no IMAP).
+            _ = _mailSyncService.RefreshTodayFolderCountAsync(node.Account.Id, CancellationToken.None);
 
             // Fire-and-forget, one-time per account: corrects already-cached messages' sort
             // date to IMAP INTERNALDATE (actual received time) instead of the sender's Date:

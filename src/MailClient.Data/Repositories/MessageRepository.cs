@@ -93,6 +93,54 @@ public sealed class MessageRepository(MailDbContext db) : IMessageStore
         return Convert.ToInt32(await command.ExecuteScalarAsync(ct));
     }
 
+    public async Task<IReadOnlyList<MailMessage>> GetTodayPageAsync(Guid accountId, int skip, int take, CancellationToken ct)
+    {
+        var (start, end) = TodayRangeUtc();
+        await using var connection = db.CreateConnection();
+        await connection.OpenAsync(ct);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT * FROM messages WHERE account_id = $accountId AND date >= $start AND date < $end
+            ORDER BY date DESC, uid DESC LIMIT $take OFFSET $skip;
+            """;
+        command.Parameters.AddWithValue("$accountId", accountId.ToString());
+        command.Parameters.AddWithValue("$start", start);
+        command.Parameters.AddWithValue("$end", end);
+        command.Parameters.AddWithValue("$take", take);
+        command.Parameters.AddWithValue("$skip", skip);
+
+        var messages = new List<MailMessage>();
+        await using var reader = await command.ExecuteReaderAsync(ct);
+        while (await reader.ReadAsync(ct))
+            messages.Add(Map(reader));
+        return messages;
+    }
+
+    public async Task<int> GetTodayCountAsync(Guid accountId, CancellationToken ct)
+    {
+        var (start, end) = TodayRangeUtc();
+        await using var connection = db.CreateConnection();
+        await connection.OpenAsync(ct);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT COUNT(*) FROM messages WHERE account_id = $accountId AND date >= $start AND date < $end;";
+        command.Parameters.AddWithValue("$accountId", accountId.ToString());
+        command.Parameters.AddWithValue("$start", start);
+        command.Parameters.AddWithValue("$end", end);
+        return Convert.ToInt32(await command.ExecuteScalarAsync(ct));
+    }
+
+    // "Today" means the local (machine timezone) calendar day, converted to the same UTC-offset
+    // ISO 8601 string format the date column is stored in, so the range comparison is a valid
+    // chronological (not just lexicographic-by-coincidence) comparison.
+    private static (string Start, string End) TodayRangeUtc()
+    {
+        var now = DateTimeOffset.Now;
+        var startLocal = new DateTimeOffset(now.Date, now.Offset);
+        var startUtc = startLocal.ToUniversalTime();
+        var endUtc = startUtc.AddDays(1);
+        return (startUtc.ToString("o"), endUtc.ToString("o"));
+    }
+
     public async Task<(int Total, int Unread)> GetFolderCountsAsync(Guid folderId, CancellationToken ct)
     {
         await using var connection = db.CreateConnection();

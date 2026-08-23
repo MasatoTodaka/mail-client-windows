@@ -16,9 +16,10 @@ public sealed class SpecialUseToGlyphConverter : IValueConverter
                 MailFolderSpecialUse.Junk => "",
                 MailFolderSpecialUse.Archive => "",
                 MailFolderSpecialUse.Flagged => "",
+                MailFolderSpecialUse.Today => "",
                 _ => "",
             }
-            : "";
+            : "";
 
     public object ConvertBack(object value, Type targetType, object parameter, string language) =>
         throw new NotSupportedException();

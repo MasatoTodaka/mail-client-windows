@@ -57,9 +57,9 @@ public sealed partial class MessageListViewModel : ViewModelBase
         IsBusy = true;
         try
         {
-            // The "フラグ付き" folder is a virtual aggregate (no ImapFullName) — there's nothing
-            // to sync from IMAP directly; it just reflects locally-known flagged messages.
-            if (folder.SpecialUse != MailFolderSpecialUse.Flagged && folder.LastSyncedAt is null)
+            // "フラグ付き"/"今日" are virtual aggregates (no ImapFullName) — there's nothing to
+            // sync from IMAP directly; they just reflect locally-known messages.
+            if (!IsVirtualFolder(folder) && folder.LastSyncedAt is null)
                 await _syncService.SyncFolderAsync(folder.Id, SyncDepth.RecentOnly, CancellationToken.None);
 
             var messages = await LoadPageAsync(folder);
@@ -89,7 +89,7 @@ public sealed partial class MessageListViewModel : ViewModelBase
         IsBusy = true;
         try
         {
-            if (_currentFolder.SpecialUse != MailFolderSpecialUse.Flagged)
+            if (!IsVirtualFolder(_currentFolder))
                 await _syncService.SyncFolderAsync(_currentFolder.Id, SyncDepth.ExtendBackward, CancellationToken.None);
             await RefreshCurrentAsync();
         }
@@ -116,17 +116,22 @@ public sealed partial class MessageListViewModel : ViewModelBase
             Messages.Add(message);
     }
 
-    private Task<IReadOnlyList<MailMessage>> LoadPageAsync(MailFolder folder) =>
-        folder.SpecialUse == MailFolderSpecialUse.Flagged
-            ? _messageStore.GetFlaggedPageAsync(folder.AccountId, skip: 0, take: PageSize, CancellationToken.None)
-            : _messageStore.GetPageAsync(folder.Id, skip: 0, take: PageSize, CancellationToken.None);
+    private Task<IReadOnlyList<MailMessage>> LoadPageAsync(MailFolder folder) => folder.SpecialUse switch
+    {
+        MailFolderSpecialUse.Flagged => _messageStore.GetFlaggedPageAsync(folder.AccountId, skip: 0, take: PageSize, CancellationToken.None),
+        MailFolderSpecialUse.Today => _messageStore.GetTodayPageAsync(folder.AccountId, skip: 0, take: PageSize, CancellationToken.None),
+        _ => _messageStore.GetPageAsync(folder.Id, skip: 0, take: PageSize, CancellationToken.None),
+    };
+
+    private static bool IsVirtualFolder(MailFolder folder) =>
+        folder.SpecialUse is MailFolderSpecialUse.Flagged or MailFolderSpecialUse.Today;
 
     // Available move targets for the right-click "移動" submenu: every real folder in the
-    // account except the message's own current folder (can't move it into itself) and the
-    // virtual "フラグ付き" folder (nothing to actually move into — it's not a real IMAP folder).
-    // Takes the message's folder explicitly (not _currentFolder) since when viewing the virtual
-    // "フラグ付き" aggregate, _currentFolder is the virtual folder itself, not where the
-    // message actually lives.
+    // account except the message's own current folder (can't move it into itself) and any
+    // virtual folder (nothing to actually move into — not a real IMAP folder).
+    // Takes the message's folder explicitly (not _currentFolder) since when viewing a virtual
+    // aggregate folder, _currentFolder is the virtual folder itself, not where the message
+    // actually lives.
     public async Task<IReadOnlyList<MailFolder>> GetMoveTargetFoldersAsync(Guid accountId, Guid excludeFolderId)
     {
         var folders = await _folderStore.GetByAccountAsync(accountId, CancellationToken.None);
@@ -172,7 +177,12 @@ public sealed partial class MessageListViewModel : ViewModelBase
     {
         _uiDispatcher.Post(() =>
         {
-            if (_currentFolder is not null && e.Message.FolderId == _currentFolder.Id)
+            if (_currentFolder is null)
+                return;
+
+            // New mail always belongs to "today", so the virtual "今日" view needs a refresh
+            // regardless of which real folder the message landed in.
+            if (e.Message.FolderId == _currentFolder.Id || _currentFolder.SpecialUse == MailFolderSpecialUse.Today)
                 _ = RefreshCurrentAsync();
         });
     }

@@ -15,6 +15,11 @@ public interface IMessageStore
     Task<IReadOnlyList<MailMessage>> GetFlaggedPageAsync(Guid accountId, int skip, int take, CancellationToken ct);
     Task<int> GetFlaggedCountAsync(Guid accountId, CancellationToken ct);
 
+    // Messages received since local midnight, across every real folder in the account — backs
+    // the virtual "今日" smart folder.
+    Task<IReadOnlyList<MailMessage>> GetTodayPageAsync(Guid accountId, int skip, int take, CancellationToken ct);
+    Task<int> GetTodayCountAsync(Guid accountId, CancellationToken ct);
+
     // Every locally-known message across all of an account's folders — used to apply mail rules
     // retroactively ("run now"), not for normal list display (which pages per folder).
     Task<IReadOnlyList<MailMessage>> GetByAccountAsync(Guid accountId, CancellationToken ct);

@@ -109,6 +109,11 @@ public sealed class MailSyncService(
                     MessageArrived?.Invoke(this, new MessageArrivedEventArgs(toSave));
             }
 
+            // New mail can shift what counts as "今日" even without a flag/read change, so
+            // refresh that badge here rather than only on account reconnect.
+            if (depth == SyncDepth.RecentOnly && headers.Count > 0)
+                await RefreshTodayFolderCountAsync(account.Id, ct);
+
             // Reflects all locally-known messages for the folder (grows as ExtendBackward pages
             // further back), not the server's true folder total — full-history tracking would
             // need SyncDepth.Full.
@@ -259,6 +264,21 @@ public sealed class MailSyncService(
 
         await folderStore.UpdateCountsAsync(flaggedFolder.Id, count, count, ct);
         FolderCountsChanged?.Invoke(this, new FolderCountsChangedEventArgs(flaggedFolder.Id, count, count));
+    }
+
+    public async Task RefreshTodayFolderCountAsync(Guid accountId, CancellationToken ct)
+    {
+        var folders = await folderStore.GetByAccountAsync(accountId, ct);
+        var todayFolder = folders.FirstOrDefault(f => f.SpecialUse == MailFolderSpecialUse.Today);
+        if (todayFolder is null)
+            return;
+
+        var count = await messageStore.GetTodayCountAsync(accountId, ct);
+        if (count == todayFolder.TotalCount && count == todayFolder.UnreadCount)
+            return;
+
+        await folderStore.UpdateCountsAsync(todayFolder.Id, count, count, ct);
+        FolderCountsChanged?.Invoke(this, new FolderCountsChangedEventArgs(todayFolder.Id, count, count));
     }
 
     public async Task StartLiveUpdatesAsync(Guid accountId, CancellationToken ct)

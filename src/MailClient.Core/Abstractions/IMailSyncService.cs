@@ -27,6 +27,10 @@ public interface IMailSyncService
     // Recomputes the account's virtual "フラグ付き" folder badge (pure local count, no IMAP)
     // and raises FolderCountsChanged. Call after any flag toggle.
     Task RefreshFlaggedFolderCountAsync(Guid accountId, CancellationToken ct);
+
+    // Recomputes the account's virtual "今日" folder badge (pure local count, no IMAP) and
+    // raises FolderCountsChanged. Call after new mail arrives (and on reconnect).
+    Task RefreshTodayFolderCountAsync(Guid accountId, CancellationToken ct);
     Task StartLiveUpdatesAsync(Guid accountId, CancellationToken ct);
     Task StopLiveUpdatesAsync(Guid accountId);
 
