@@ -147,7 +147,14 @@ public sealed partial class MessageListViewModel : ViewModelBase
     // existing row's setter is enough to update just the unread dot / flag icon — no need to
     // replace the row (which would otherwise recreate its container and disturb its selection
     // highlight) just because the user marked it read or flagged it.
-    private void ApplyMessages(IReadOnlyList<MailMessage> messages)
+    //
+    // forceReplaceAddresses covers a case DisplayState can't see at all: the sender logo Ellipse
+    // binds FromAddress through a OneTime converter that only re-checks disk for a cached file when
+    // its row's container gets rebound. A freshly-fetched logo landing in PrefetchLogosAsync changes
+    // nothing about the row's own fields (FromAddress didn't change), so without this the row would
+    // never replace and the new logo would silently never appear until something else about that
+    // row happened to change for an unrelated reason.
+    private void ApplyMessages(IReadOnlyList<MailMessage> messages, IReadOnlySet<string>? forceReplaceAddresses = null)
     {
         var newIds = messages.Select(m => m.Id).ToHashSet();
         for (var i = Messages.Count - 1; i >= 0; i--)
@@ -170,7 +177,8 @@ public sealed partial class MessageListViewModel : ViewModelBase
                 existing.IsFlagged = message.IsFlagged;
 
                 var newState = DisplayState.From(message);
-                if (!_lastAppliedState.TryGetValue(message.Id, out var previousState) || previousState != newState)
+                var forceReplace = forceReplaceAddresses is not null && forceReplaceAddresses.Contains(message.FromAddress);
+                if (forceReplace || !_lastAppliedState.TryGetValue(message.Id, out var previousState) || previousState != newState)
                 {
                     Messages[i] = message;
                     _lastAppliedState[message.Id] = newState;
@@ -244,15 +252,15 @@ public sealed partial class MessageListViewModel : ViewModelBase
             if (addressesToFetch.Count == 0)
                 return;
 
-            var fetchedAny = false;
+            var fetchedAddresses = new HashSet<string>();
             foreach (var address in addressesToFetch)
             {
                 if (await _senderLogoService.GetLogoPathAsync(address, CancellationToken.None) is not null)
-                    fetchedAny = true;
+                    fetchedAddresses.Add(address);
             }
 
-            if (fetchedAny && _currentFolder is not null)
-                ApplyMessages(await LoadPageAsync(_currentFolder));
+            if (fetchedAddresses.Count > 0 && _currentFolder is not null)
+                ApplyMessages(await LoadPageAsync(_currentFolder), fetchedAddresses);
         }
         catch
         {

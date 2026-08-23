@@ -24,7 +24,9 @@ public sealed class SenderLogoImageConverter : IValueConverter
 
         var domain = emailAddress[(at + 1)..].Trim().ToLowerInvariant();
         var appDataPaths = App.Services.GetRequiredService<AppDataPaths>();
-        var path = Path.Combine(appDataPaths.LogosDirectory, $"{domain}.png");
+        // Filename must match SenderLogoService's cache naming (domain + requested-size suffix) —
+        // see the comment on SenderLogoService.SizeSuffix for why the size is baked into the name.
+        var path = Path.Combine(appDataPaths.LogosDirectory, $"{domain}-256.png");
         return File.Exists(path) ? new BitmapImage(new Uri(path)) : null!;
     }
 

@@ -22,7 +22,7 @@ public sealed class SenderLogoService(AppDataPaths appDataPaths, ISettingsStore 
             return null;
 
         Directory.CreateDirectory(appDataPaths.LogosDirectory);
-        var path = Path.Combine(appDataPaths.LogosDirectory, $"{domain}.png");
+        var path = Path.Combine(appDataPaths.LogosDirectory, $"{domain}{SizeSuffix}.png");
         if (File.Exists(path))
             return path;
 
@@ -35,8 +35,14 @@ public sealed class SenderLogoService(AppDataPaths appDataPaths, ISettingsStore 
         if (domain is null)
             return false;
 
-        return File.Exists(Path.Combine(appDataPaths.LogosDirectory, $"{domain}.png"));
+        return File.Exists(Path.Combine(appDataPaths.LogosDirectory, $"{domain}{SizeSuffix}.png"));
     }
+
+    // The cache filename bakes in the requested size so that bumping RequestedSize automatically
+    // invalidates every previously-cached (lower-resolution) logo instead of silently continuing
+    // to serve it forever — a plain "{domain}.png" name would never expire.
+    private const int RequestedSize = 256;
+    private const string SizeSuffix = "-256";
 
     private async Task<string?> FetchAndCacheAsync(string domain, string path, CancellationToken ct)
     {
@@ -46,7 +52,12 @@ public sealed class SenderLogoService(AppDataPaths appDataPaths, ISettingsStore 
             // generic globe icon for domains it doesn't recognize rather than erroring, so this
             // won't always distinguish "no logo" from "unrecognized domain" — acceptable given
             // the caller always has the colored-initial avatar as a visual fallback anyway.
-            var url = $"https://www.google.com/s2/favicons?sz=64&domain={Uri.EscapeDataString(domain)}";
+            // Requesting a larger size than the ~34-36px display slot needs still matters: most
+            // real favicons aren't natively 64px, so asking for 64 just means Google upscales a
+            // smaller source to fill it, and that blur/aliasing was visible once actually
+            // displayed. Asking for 256 gets the highest-resolution source Google has for the
+            // domain, which then downscales cleanly to the small on-screen size instead.
+            var url = $"https://www.google.com/s2/favicons?sz={RequestedSize}&domain={Uri.EscapeDataString(domain)}";
             var bytes = await Http.GetByteArrayAsync(url, ct);
             if (bytes.Length == 0)
                 return null;
