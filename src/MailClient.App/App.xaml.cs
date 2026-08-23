@@ -1,3 +1,5 @@
+using CommunityToolkit.Mvvm.Input;
+using H.NotifyIcon;
 using MailClient.Core.Abstractions;
 using MailClient.Core.Text;
 using MailClient.Data;
@@ -6,6 +8,7 @@ using MailClient.Platform;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 
 namespace MailClient.App;
 
@@ -13,6 +16,8 @@ public partial class App : Application
 {
     private readonly IHost _host;
     private MainWindow? _mainWindow;
+    private TaskbarIcon? _trayIcon;
+    private bool _isExiting;
 
     public static IServiceProvider Services { get; private set; } = null!;
 
@@ -80,6 +85,9 @@ public partial class App : Application
 
         _mainWindow = new MainWindow();
         _mainWindow.Activate();
+        _mainWindow.Closed += OnMainWindowClosed;
+
+        SetUpTrayIcon();
 
         // Notifications are best-effort: a failure to register must never take the app down,
         // so this whole block sits after window creation and inside its own try.
@@ -220,6 +228,58 @@ public partial class App : Application
         {
             // Best-effort feature; must not take the app down.
         }
+    }
+
+    // Closing the window (X button) hides it instead of exiting, so background sync (IMAP IDLE,
+    // OTP auto-copy, mail rules) keeps running via the tray icon. Only the tray's "終了" actually
+    // exits, via _isExiting.
+    private void OnMainWindowClosed(object sender, WindowEventArgs args)
+    {
+        if (_isExiting)
+            return;
+
+        args.Handled = true;
+        _mainWindow?.AppWindow.Hide();
+    }
+
+    private void SetUpTrayIcon()
+    {
+        _trayIcon = new TaskbarIcon
+        {
+            Icon = new System.Drawing.Icon(Path.Combine(AppContext.BaseDirectory, "Assets", "AppIcon.ico")),
+            ToolTipText = "Mail Client",
+            LeftClickCommand = new RelayCommand(ShowMainWindow),
+        };
+
+        var openItem = new MenuFlyoutItem { Text = "開く" };
+        openItem.Click += (_, _) => ShowMainWindow();
+
+        var exitItem = new MenuFlyoutItem { Text = "終了" };
+        exitItem.Click += (_, _) => ExitApp();
+
+        var menu = new MenuFlyout();
+        menu.Items.Add(openItem);
+        menu.Items.Add(exitItem);
+        _trayIcon.ContextFlyout = menu;
+
+        _trayIcon.ForceCreate();
+    }
+
+    private void ShowMainWindow()
+    {
+        if (_mainWindow is null)
+            return;
+
+        _mainWindow.AppWindow.Show();
+        _mainWindow.Activate();
+    }
+
+    private void ExitApp()
+    {
+        _isExiting = true;
+        _trayIcon?.Dispose();
+        _mainWindow?.Close();
+        Exit();
     }
 
     private static string StripHtmlTags(string html) =>
