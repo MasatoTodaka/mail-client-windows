@@ -135,15 +135,24 @@ public sealed class SenderLogoService(AppDataPaths appDataPaths, ISettingsStore 
         ["riotgames.com"] = "riotgames",
     };
 
-    // The cache filename bakes in the requested size so that bumping RequestedSize automatically
-    // invalidates every previously-cached (lower-resolution) logo instead of silently continuing
-    // to serve it forever — a plain "{domain}.png" name would never expire.
     private const int RequestedSize = 256;
-    private const string SizeSuffix = "-256";
 
-    private string FaviconCachePath(string domain) => Path.Combine(appDataPaths.LogosDirectory, $"{domain}{SizeSuffix}.png");
-    private string SvgCachePath(string slug) => Path.Combine(appDataPaths.LogosDirectory, $"si-{slug}.svg");
-    private string BimiCachePath(string domain) => Path.Combine(appDataPaths.LogosDirectory, $"bimi-{domain}.svg");
+    // Bumped whenever anything about how a cached logo is chosen or fetched changes in a way that
+    // could yield a different (hopefully better) result for an already-cached domain — e.g.
+    // raising RequestedSize, reordering tier priority (adding BIMI ahead of Simple Icons, or
+    // trying the raw sending domain before the registrable one), or an SVG rendering fix. Baked
+    // into every cache filename below so a version bump forces every previously-cached logo to be
+    // re-resolved through the current logic on next encounter, rather than an already-resolved
+    // lower-tier cache silently blocking the upgrade forever.
+    //
+    // This bit us repeatedly while adding BIMI: PayPay Card, Yahoo, and Riot Games all had a
+    // better tier available but kept showing their old cached logo until the cache directory was
+    // manually cleared by hand. Bump this instead, next time a change like that ships.
+    private const int CacheVersion = 1;
+
+    private string FaviconCachePath(string domain) => Path.Combine(appDataPaths.LogosDirectory, $"{domain}-{RequestedSize}-v{CacheVersion}.png");
+    private string SvgCachePath(string slug) => Path.Combine(appDataPaths.LogosDirectory, $"si-{slug}-v{CacheVersion}.svg");
+    private string BimiCachePath(string domain) => Path.Combine(appDataPaths.LogosDirectory, $"bimi-{domain}-v{CacheVersion}.svg");
 
     // BIMI (Brand Indicators for Message Identification, the mechanism that gives Apple/iOS Mail
     // its crisp verified-sender logos): a domain that wants a logo shown next to its mail publishes

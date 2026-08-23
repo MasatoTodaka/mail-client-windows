@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -238,6 +239,13 @@ public sealed partial class MessageListViewModel : ViewModelBase
     // were genuinely fetched just now show up immediately instead of waiting for some unrelated
     // refresh trigger. Calls ApplyMessages directly (not RefreshCurrentAsync) so this doesn't
     // recursively kick off another prefetch pass.
+    // How many logo fetches (each up to 3 sequential network hops now that BIMI/Simple
+    // Icons/favicon are all tried in priority order — see SenderLogoService) run at once. Purely a
+    // throttle, not a hard limit tied to anything about the domains themselves; chosen to match
+    // the handful of concurrent connections a browser opens per host, low enough to stay a good
+    // network citizen while still being a large win over doing 100+ domains one at a time.
+    private const int LogoPrefetchConcurrency = 6;
+
     private async Task PrefetchLogosAsync(IReadOnlyList<MailMessage> messages)
     {
         try
@@ -252,15 +260,30 @@ public sealed partial class MessageListViewModel : ViewModelBase
             if (addressesToFetch.Count == 0)
                 return;
 
-            var fetchedAddresses = new HashSet<string>();
-            foreach (var address in addressesToFetch)
+            // Fetches used to run one domain at a time, which was fine when each was a single
+            // favicon request but got noticeably slow once BIMI (a DNS lookup plus an SVG fetch,
+            // tried before Simple Icons and the favicon fallback) made a first-time domain lookup
+            // up to three sequential network round trips. Fetching a bounded number of domains
+            // concurrently instead cut a full-page first-load from tens of seconds to a few.
+            var fetchedAddresses = new ConcurrentBag<string>();
+            using var throttle = new SemaphoreSlim(LogoPrefetchConcurrency);
+            var fetchTasks = addressesToFetch.Select(async address =>
             {
-                if (await _senderLogoService.GetLogoPathAsync(address, CancellationToken.None) is not null)
-                    fetchedAddresses.Add(address);
-            }
+                await throttle.WaitAsync();
+                try
+                {
+                    if (await _senderLogoService.GetLogoPathAsync(address, CancellationToken.None) is not null)
+                        fetchedAddresses.Add(address);
+                }
+                finally
+                {
+                    throttle.Release();
+                }
+            });
+            await Task.WhenAll(fetchTasks);
 
-            if (fetchedAddresses.Count > 0 && _currentFolder is not null)
-                ApplyMessages(await LoadPageAsync(_currentFolder), fetchedAddresses);
+            if (!fetchedAddresses.IsEmpty && _currentFolder is not null)
+                ApplyMessages(await LoadPageAsync(_currentFolder), fetchedAddresses.ToHashSet());
         }
         catch
         {
