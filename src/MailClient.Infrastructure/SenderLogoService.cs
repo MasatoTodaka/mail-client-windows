@@ -28,9 +28,10 @@ public sealed class SenderLogoService(AppDataPaths appDataPaths, ISettingsStore 
         if (!await settingsStore.GetShowSenderLogosEnabledAsync(ct))
             return null;
 
-        var domain = ExtractDomain(emailAddress);
-        if (domain is null)
+        var rawDomain = ExtractRawDomain(emailAddress);
+        if (rawDomain is null)
             return null;
+        var domain = ToRegistrableDomain(rawDomain);
 
         Directory.CreateDirectory(appDataPaths.LogosDirectory);
 
@@ -38,7 +39,7 @@ public sealed class SenderLogoService(AppDataPaths appDataPaths, ISettingsStore 
         if (File.Exists(bimiPath))
             return bimiPath;
 
-        var bimiResult = await _inFlight.GetOrAdd($"bimi:{domain}", _ => FetchAndCacheBimiAsync(domain, bimiPath, ct));
+        var bimiResult = await _inFlight.GetOrAdd($"bimi:{domain}", _ => FetchAndCacheBimiAsync(rawDomain, domain, bimiPath, ct));
         if (bimiResult is not null)
             return bimiResult;
 
@@ -157,20 +158,20 @@ public sealed class SenderLogoService(AppDataPaths appDataPaths, ISettingsStore 
     // still get its logo shown here. This app doesn't verify DKIM/DMARC on incoming mail at all
     // today (the From header is trusted as-is either way), so this doesn't meaningfully change the
     // existing trust model — it's a cosmetic lookup, not a security signal.
-    private async Task<string?> FetchAndCacheBimiAsync(string domain, string path, CancellationToken ct)
+    //
+    // Tries the exact sending domain (rawDomain) before falling back to the registrable domain
+    // (registrableDomain): most senders publish BIMI at their registrable domain, but some (PayPay
+    // Card, confirmed against a real mailbox — its record lives at mail.paypay-card.co.jp, not
+    // paypay-card.co.jp) publish it only at the specific subdomain their mail actually comes from.
+    // Either way the fetched logo is cached under the registrable domain's path, matching how
+    // Simple Icons/favicon already key by registrable domain.
+    private async Task<string?> FetchAndCacheBimiAsync(string rawDomain, string registrableDomain, string path, CancellationToken ct)
     {
         try
         {
-            var dohUrl = $"https://dns.google/resolve?name={Uri.EscapeDataString($"default._bimi.{domain}")}&type=TXT";
-            var json = await Http.GetStringAsync(dohUrl, ct);
-            var response = JsonSerializer.Deserialize<DohResponse>(json, DohJsonOptions);
-            var record = response?.Answer?
-                .Select(a => a.Data)
-                .FirstOrDefault(d => d is not null && d.Contains("BIMI1", StringComparison.OrdinalIgnoreCase));
-            if (record is null)
-                return null;
-
-            var logoUrl = ParseBimiLogoUrl(record);
+            var logoUrl = await TryGetBimiLogoUrlAsync(rawDomain, ct);
+            if (logoUrl is null && !string.Equals(rawDomain, registrableDomain, StringComparison.OrdinalIgnoreCase))
+                logoUrl = await TryGetBimiLogoUrlAsync(registrableDomain, ct);
             if (logoUrl is null)
                 return null;
 
@@ -187,7 +188,25 @@ public sealed class SenderLogoService(AppDataPaths appDataPaths, ISettingsStore 
         }
         finally
         {
-            _inFlight.TryRemove($"bimi:{domain}", out _);
+            _inFlight.TryRemove($"bimi:{registrableDomain}", out _);
+        }
+    }
+
+    private async Task<string?> TryGetBimiLogoUrlAsync(string domain, CancellationToken ct)
+    {
+        try
+        {
+            var dohUrl = $"https://dns.google/resolve?name={Uri.EscapeDataString($"default._bimi.{domain}")}&type=TXT";
+            var json = await Http.GetStringAsync(dohUrl, ct);
+            var response = JsonSerializer.Deserialize<DohResponse>(json, DohJsonOptions);
+            var record = response?.Answer?
+                .Select(a => a.Data)
+                .FirstOrDefault(d => d is not null && d.Contains("BIMI1", StringComparison.OrdinalIgnoreCase));
+            return record is null ? null : ParseBimiLogoUrl(record);
+        }
+        catch
+        {
+            return null;
         }
     }
 
@@ -335,14 +354,22 @@ public sealed class SenderLogoService(AppDataPaths appDataPaths, ISettingsStore 
 
     private static string? ExtractDomain(string emailAddress)
     {
+        var rawDomain = ExtractRawDomain(emailAddress);
+        return rawDomain is null ? null : ToRegistrableDomain(rawDomain);
+    }
+
+    // Unlike ExtractDomain, doesn't collapse a subdomain down to its registrable domain — needed
+    // by GetLogoPathAsync's BIMI lookup, which has to try the exact sending domain first (see the
+    // comment on FetchAndCacheBimiAsync for why).
+    private static string? ExtractRawDomain(string emailAddress)
+    {
         var at = emailAddress.LastIndexOf('@');
         if (at < 0 || at == emailAddress.Length - 1)
             return null;
 
         var domain = emailAddress[(at + 1)..].Trim().ToLowerInvariant();
-        if (domain.Length == 0 || !domain.All(c => !Path.GetInvalidFileNameChars().Contains(c)))
-            return null;
-
-        return ToRegistrableDomain(domain);
+        return domain.Length == 0 || !domain.All(c => !Path.GetInvalidFileNameChars().Contains(c))
+            ? null
+            : domain;
     }
 }
