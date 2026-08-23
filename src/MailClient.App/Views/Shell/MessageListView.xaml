@@ -88,7 +88,7 @@
                             VerticalAlignment="Top"
                             Margin="0,5,0,0"
                             Fill="{ThemeResource AccentFillColorDefaultBrush}"
-                            Visibility="{x:Bind IsRead, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
+                            Visibility="{x:Bind IsRead, Converter={StaticResource InverseBoolToVisibilityConverter}, Mode=OneWay}" />
                         <Grid Grid.Column="1" Width="34" Height="34" VerticalAlignment="Top">
                             <Border
                                 CornerRadius="17"
@@ -120,14 +120,14 @@
                                 <TextBlock
                                     Grid.Column="0"
                                     Text="{x:Bind FromDisplay}"
-                                    FontWeight="{x:Bind IsRead, Converter={StaticResource BoolToFontWeightConverter}}"
+                                    FontWeight="{x:Bind IsRead, Converter={StaticResource BoolToFontWeightConverter}, Mode=OneWay}"
                                     TextTrimming="CharacterEllipsis" />
                                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                                     <FontIcon
                                         Glyph="&#xE129;"
                                         FontSize="12"
                                         Foreground="{ThemeResource SystemFillColorCautionBrush}"
-                                        Visibility="{x:Bind IsFlagged, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                        Visibility="{x:Bind IsFlagged, Converter={StaticResource BoolToVisibilityConverter}, Mode=OneWay}" />
                                     <FontIcon
                                         Glyph="&#xE723;"
                                         FontSize="12"
@@ -141,7 +141,7 @@
                             </Grid>
                             <TextBlock
                                 Text="{x:Bind Subject}"
-                                FontWeight="{x:Bind IsRead, Converter={StaticResource BoolToFontWeightConverter}}"
+                                FontWeight="{x:Bind IsRead, Converter={StaticResource BoolToFontWeightConverter}, Mode=OneWay}"
                                 Opacity="0.8"
                                 TextTrimming="CharacterEllipsis" />
                         </StackPanel>

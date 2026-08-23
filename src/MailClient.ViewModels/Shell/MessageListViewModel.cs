@@ -140,6 +140,13 @@ public sealed partial class MessageListViewModel : ViewModelBase
     // against them would silently swallow the very change we're here to pick up (this is what
     // broke "既読にする" after the previous fix). _lastAppliedState is a separate snapshot that
     // only this method ever writes, so it still reflects what was actually shown last time.
+    //
+    // IsRead/IsFlagged are excluded from that snapshot and handled separately (just below): they're
+    // the two fields MessageActionService mutates in place and MailMessage now raises
+    // PropertyChanged for, and MessageListView binds Mode=OneWay, so propagating them onto the
+    // existing row's setter is enough to update just the unread dot / flag icon — no need to
+    // replace the row (which would otherwise recreate its container and disturb its selection
+    // highlight) just because the user marked it read or flagged it.
     private void ApplyMessages(IReadOnlyList<MailMessage> messages)
     {
         var newIds = messages.Select(m => m.Id).ToHashSet();
@@ -155,10 +162,14 @@ public sealed partial class MessageListViewModel : ViewModelBase
         for (var i = 0; i < messages.Count; i++)
         {
             var message = messages[i];
-            var newState = DisplayState.From(message);
 
             if (i < Messages.Count && Messages[i].Id == message.Id)
             {
+                var existing = Messages[i];
+                existing.IsRead = message.IsRead;
+                existing.IsFlagged = message.IsFlagged;
+
+                var newState = DisplayState.From(message);
                 if (!_lastAppliedState.TryGetValue(message.Id, out var previousState) || previousState != newState)
                 {
                     Messages[i] = message;
@@ -182,12 +193,13 @@ public sealed partial class MessageListViewModel : ViewModelBase
             else
                 Messages.Insert(i, message);
 
-            _lastAppliedState[message.Id] = newState;
+            _lastAppliedState[message.Id] = DisplayState.From(message);
         }
     }
 
-    // Plain-value snapshot of every field the message list's DataTemplate binds to, used solely to
-    // detect real changes between ApplyMessages passes — see the comment there.
+    // Plain-value snapshot of the message list's DataTemplate-bound fields that are still
+    // effectively OneTime (i.e. everything except IsRead/IsFlagged, which are live-notified —
+    // see ApplyMessages above), used solely to detect real changes between ApplyMessages passes.
     private readonly record struct DisplayState(
         uint Uid,
         Guid FolderId,
@@ -196,8 +208,6 @@ public sealed partial class MessageListViewModel : ViewModelBase
         string FromAddress,
         DateTimeOffset Date,
         string Snippet,
-        bool IsRead,
-        bool IsFlagged,
         bool IsAnswered,
         bool IsDraft,
         bool HasAttachments,
@@ -205,7 +215,7 @@ public sealed partial class MessageListViewModel : ViewModelBase
     {
         public static DisplayState From(MailMessage m) => new(
             m.Uid, m.FolderId, m.Subject, m.FromDisplay, m.FromAddress, m.Date, m.Snippet,
-            m.IsRead, m.IsFlagged, m.IsAnswered, m.IsDraft, m.HasAttachments, m.IsBodyDownloaded);
+            m.IsAnswered, m.IsDraft, m.HasAttachments, m.IsBodyDownloaded);
     }
 
     // Fire-and-forget: makes sure every unique sender domain on the page has its logo cached
