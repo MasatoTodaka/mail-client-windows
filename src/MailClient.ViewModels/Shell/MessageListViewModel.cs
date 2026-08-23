@@ -117,11 +117,46 @@ public sealed partial class MessageListViewModel : ViewModelBase
         _ = PrefetchLogosAsync(messages);
     }
 
+    // In-place diff/reconcile rather than Clear()+Add() — the ListView visually collapses to
+    // empty and rebuilds on Clear() (losing scroll position and producing the "jumps like a
+    // pull-to-refresh" motion users noticed after every read/flag/logo-driven refresh). Ending
+    // up at the same final list via targeted Replace/Move/Insert/Remove keeps everything else
+    // in the ListView undisturbed.
     private void ApplyMessages(IReadOnlyList<MailMessage> messages)
     {
-        Messages.Clear();
-        foreach (var message in messages)
-            Messages.Add(message);
+        var newIds = messages.Select(m => m.Id).ToHashSet();
+        for (var i = Messages.Count - 1; i >= 0; i--)
+        {
+            if (!newIds.Contains(Messages[i].Id))
+                Messages.RemoveAt(i);
+        }
+
+        for (var i = 0; i < messages.Count; i++)
+        {
+            var message = messages[i];
+            if (i < Messages.Count && Messages[i].Id == message.Id)
+            {
+                // Same message already at this position — replace in place to pick up any
+                // changed fields (read/flag state, etc.) without disturbing the rest of the list.
+                Messages[i] = message;
+                continue;
+            }
+
+            var existingIndex = -1;
+            for (var j = i; j < Messages.Count; j++)
+            {
+                if (Messages[j].Id == message.Id)
+                {
+                    existingIndex = j;
+                    break;
+                }
+            }
+
+            if (existingIndex >= 0)
+                Messages.Move(existingIndex, i);
+            else
+                Messages.Insert(i, message);
+        }
     }
 
     // Fire-and-forget: makes sure every unique sender domain on the page has its logo cached
