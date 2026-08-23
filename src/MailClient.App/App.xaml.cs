@@ -17,7 +17,6 @@ public partial class App : Application
     private readonly IHost _host;
     private MainWindow? _mainWindow;
     private TaskbarIcon? _trayIcon;
-    private bool _isExiting;
 
     public static IServiceProvider Services { get; private set; } = null!;
 
@@ -231,13 +230,11 @@ public partial class App : Application
     }
 
     // Closing the window (X button) hides it instead of exiting, so background sync (IMAP IDLE,
-    // OTP auto-copy, mail rules) keeps running via the tray icon. Only the tray's "終了" actually
-    // exits, via _isExiting.
+    // OTP auto-copy, mail rules) keeps running via the tray icon. The tray's "終了" exits via
+    // Environment.Exit(0) directly (see ExitApp), which never goes through Window.Close() at all,
+    // so this handler only ever runs for the X button.
     private void OnMainWindowClosed(object sender, WindowEventArgs args)
     {
-        if (_isExiting)
-            return;
-
         args.Handled = true;
         _mainWindow?.AppWindow.Hide();
     }
@@ -276,15 +273,13 @@ public partial class App : Application
 
     private void ExitApp()
     {
-        _isExiting = true;
-        _trayIcon?.Dispose();
-        _mainWindow?.Close();
-        Exit();
-
-        // Application.Exit() only asks the dispatcher queue to wind down once every window is
-        // closed — it doesn't stop background threads that aren't tied to it (the IMAP IDLE watch
-        // loop's Task.Run keeps a socket read blocked on a ThreadPool thread), so the process can
-        // linger after the tray icon and window have already disappeared. Force it.
+        // Environment.Exit(0) unconditionally kills the process, so it's called first and nothing
+        // else needs to succeed for the app to actually quit. It was previously called last, after
+        // _trayIcon.Dispose()/_mainWindow.Close()/Exit() -- if any of those hung or threw (plausible:
+        // the IMAP IDLE watcher's Task.Run keeps a socket read blocked on a ThreadPool thread, and
+        // Application.Exit() alone doesn't stop that), the process never reached this line at all,
+        // which is exactly what "終了 does nothing, the tray icon and task are still there" looks
+        // like. Nothing past this line ever runs.
         Environment.Exit(0);
     }
 
