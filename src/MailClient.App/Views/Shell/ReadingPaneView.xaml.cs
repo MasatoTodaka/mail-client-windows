@@ -2,6 +2,7 @@ using MailClient.App.Views.Compose;
 using MailClient.ViewModels.Compose;
 using MailClient.ViewModels.Shell;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -33,11 +34,13 @@ public sealed partial class ReadingPaneView : UserControl
         if (message is null)
         {
             SenderLogoBrush.ImageSource = null;
+            SenderLogoBacking.Background = null;
             return;
         }
 
         var path = await ViewModel.GetSenderLogoPathAsync(message.FromAddress);
         SenderLogoBrush.ImageSource = path is null ? null : new BitmapImage(new Uri(path));
+        SenderLogoBacking.Background = path is null ? null : new SolidColorBrush(Colors.White);
     }
 
     private async Task NavigateAsync(string html)

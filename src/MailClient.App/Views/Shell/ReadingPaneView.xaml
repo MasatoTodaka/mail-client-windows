@@ -74,7 +74,12 @@
                         <!-- Overlays the colored-initial fallback once (if) a real logo for this
                              sender's domain is fetched — see UpdateSenderLogoAsync. A Border
                              clipping its Background to CornerRadius anti-aliases noticeably more
-                             smoothly than an Ellipse filled with the same ImageBrush. -->
+                             smoothly than an Ellipse filled with the same ImageBrush.
+                             SenderLogoBacking gets an opaque white Background (set in
+                             UpdateSenderLogoAsync, only when a logo actually exists) so a favicon
+                             with a transparent background doesn't let the colored initial
+                             underneath show through and look like it's colliding with the logo. -->
+                        <Border x:Name="SenderLogoBacking" CornerRadius="18" />
                         <Border CornerRadius="18">
                             <Border.Background>
                                 <ImageBrush x:Name="SenderLogoBrush" Stretch="UniformToFill" />

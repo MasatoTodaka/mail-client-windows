@@ -18,6 +18,7 @@
         <converters:SenderInitialConverter x:Key="SenderInitialConverter" />
         <converters:SenderAvatarColorConverter x:Key="SenderAvatarColorConverter" />
         <converters:SenderLogoImageConverter x:Key="SenderLogoImageConverter" />
+        <converters:SenderLogoBackgroundConverter x:Key="SenderLogoBackgroundConverter" />
     </UserControl.Resources>
 
     <Grid>
@@ -109,7 +110,12 @@
                                  than an Ellipse filled with the same ImageBrush (same technique as
                                  the account unread-count badge, which never showed this problem).
                                  The larger 40px size (was 34px) also makes any residual edge
-                                 softness proportionally less noticeable. -->
+                                 softness proportionally less noticeable.
+                                 An opaque white backing sits behind the logo image (only when a
+                                 logo actually exists) so a favicon with a transparent background
+                                 doesn't let the colored initial underneath show through and look
+                                 like it's colliding with the logo artwork. -->
+                            <Border CornerRadius="20" Background="{x:Bind FromAddress, Converter={StaticResource SenderLogoBackgroundConverter}}" />
                             <Border CornerRadius="20">
                                 <Border.Background>
                                     <ImageBrush Stretch="UniformToFill" ImageSource="{x:Bind FromAddress, Converter={StaticResource SenderLogoImageConverter}}" />
