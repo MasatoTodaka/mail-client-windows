@@ -1,4 +1,4 @@
-using MailClient.Core;
+using MailClient.Core.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Media.Imaging;
@@ -18,16 +18,13 @@ public sealed class SenderLogoImageConverter : IValueConverter
         if (value is not string emailAddress || string.IsNullOrWhiteSpace(emailAddress))
             return null!;
 
-        var at = emailAddress.LastIndexOf('@');
-        if (at < 0 || at == emailAddress.Length - 1)
-            return null!;
-
-        var domain = emailAddress[(at + 1)..].Trim().ToLowerInvariant();
-        var appDataPaths = App.Services.GetRequiredService<AppDataPaths>();
-        // Filename must match SenderLogoService's cache naming (domain + requested-size suffix) —
-        // see the comment on SenderLogoService.SizeSuffix for why the size is baked into the name.
-        var path = Path.Combine(appDataPaths.LogosDirectory, $"{domain}-256.png");
-        return File.Exists(path) ? new BitmapImage(new Uri(path)) : null!;
+        // Delegates the domain-matching/cache-path logic to ISenderLogoService rather than
+        // duplicating it here — this file previously rebuilt the domain and filename itself, which
+        // silently went stale (still looking for the old "{domain}.png" name) the last time that
+        // logic changed in SenderLogoService.
+        var senderLogoService = App.Services.GetRequiredService<ISenderLogoService>();
+        var path = senderLogoService.GetCachedLogoPath(emailAddress);
+        return path is not null ? new BitmapImage(new Uri(path)) : null!;
     }
 
     public object ConvertBack(object value, Type targetType, object parameter, string language) =>
