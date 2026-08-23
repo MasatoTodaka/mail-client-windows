@@ -1,4 +1,6 @@
 using System.Collections.Concurrent;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using MailClient.Core;
 using MailClient.Core.Abstractions;
 
@@ -7,11 +9,18 @@ namespace MailClient.Infrastructure;
 public sealed class SenderLogoService(AppDataPaths appDataPaths, ISettingsStore settingsStore) : ISenderLogoService
 {
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(5) };
+    private static readonly JsonSerializerOptions DohJsonOptions = new() { PropertyNameCaseInsensitive = true };
 
     // Coalesces concurrent requests for the same domain/slug — many message rows share a sender,
     // and without this each one would kick off its own redundant download.
     private readonly ConcurrentDictionary<string, Task<string?>> _inFlight = new();
 
+    // Priority order: BIMI (the sender's own officially-published vector logo, when they publish
+    // one — see FetchAndCacheBimiAsync) > Simple Icons (a curated third-party vector logo for
+    // well-known brands) > Google favicon (raster, works for almost anything but caps out around
+    // 256px and can blur/alias once displayed). Each tier's own cache file existing is what lets
+    // GetCachedLogoPath/IsLogoCached skip straight past every tier below it on future lookups, so
+    // a domain only ever pays for a BIMI DNS query + Simple Icons miss once, on first encounter.
     public async Task<string?> GetLogoPathAsync(string emailAddress, CancellationToken ct)
     {
         if (!await settingsStore.GetShowSenderLogosEnabledAsync(ct))
@@ -23,20 +32,30 @@ public sealed class SenderLogoService(AppDataPaths appDataPaths, ISettingsStore 
 
         Directory.CreateDirectory(appDataPaths.LogosDirectory);
 
+        var bimiPath = BimiCachePath(domain);
+        if (File.Exists(bimiPath))
+            return bimiPath;
+
+        var bimiResult = await _inFlight.GetOrAdd($"bimi:{domain}", _ => FetchAndCacheBimiAsync(domain, bimiPath, ct));
+        if (bimiResult is not null)
+            return bimiResult;
+
         if (SimpleIconsSlugs.TryGetValue(domain, out var slug))
         {
             var svgPath = SvgCachePath(slug);
             if (File.Exists(svgPath))
                 return svgPath;
 
-            return await _inFlight.GetOrAdd($"svg:{slug}", _ => FetchAndCacheSvgAsync(slug, svgPath, ct));
+            var svgResult = await _inFlight.GetOrAdd($"svg:{slug}", _ => FetchAndCacheSvgAsync(slug, svgPath, ct));
+            if (svgResult is not null)
+                return svgResult;
         }
 
-        var path = FaviconCachePath(domain);
-        if (File.Exists(path))
-            return path;
+        var faviconPath = FaviconCachePath(domain);
+        if (File.Exists(faviconPath))
+            return faviconPath;
 
-        return await _inFlight.GetOrAdd(domain, _ => FetchAndCacheFaviconAsync(domain, path, ct));
+        return await _inFlight.GetOrAdd(domain, _ => FetchAndCacheFaviconAsync(domain, faviconPath, ct));
     }
 
     public bool IsLogoCached(string emailAddress) => GetCachedLogoPath(emailAddress) is not null;
@@ -47,14 +66,19 @@ public sealed class SenderLogoService(AppDataPaths appDataPaths, ISettingsStore 
         if (domain is null)
             return null;
 
+        var bimiPath = BimiCachePath(domain);
+        if (File.Exists(bimiPath))
+            return bimiPath;
+
         if (SimpleIconsSlugs.TryGetValue(domain, out var slug))
         {
             var svgPath = SvgCachePath(slug);
-            return File.Exists(svgPath) ? svgPath : null;
+            if (File.Exists(svgPath))
+                return svgPath;
         }
 
-        var path = FaviconCachePath(domain);
-        return File.Exists(path) ? path : null;
+        var faviconPath = FaviconCachePath(domain);
+        return File.Exists(faviconPath) ? faviconPath : null;
     }
 
     // Curated domain → Simple Icons (simpleicons.org) slug map for senders known to have a
@@ -116,6 +140,86 @@ public sealed class SenderLogoService(AppDataPaths appDataPaths, ISettingsStore 
 
     private string FaviconCachePath(string domain) => Path.Combine(appDataPaths.LogosDirectory, $"{domain}{SizeSuffix}.png");
     private string SvgCachePath(string slug) => Path.Combine(appDataPaths.LogosDirectory, $"si-{slug}.svg");
+    private string BimiCachePath(string domain) => Path.Combine(appDataPaths.LogosDirectory, $"bimi-{domain}.svg");
+
+    // BIMI (Brand Indicators for Message Identification, the mechanism that gives Apple/iOS Mail
+    // its crisp verified-sender logos): a domain that wants a logo shown next to its mail publishes
+    // a TXT record at default._bimi.{domain} pointing to its own official SVG. Looked up via
+    // Google's public DNS-over-HTTPS JSON API rather than a DNS library, since it's a plain HTTPS
+    // GET — consistent with every other lookup in this class and avoids a native-DNS dependency.
+    //
+    // Deliberately simplified vs. the full BIMI spec: does NOT verify the domain enforces DMARC
+    // (p=quarantine/reject) or validate the accompanying VMC certificate chain (the "a=" field) —
+    // that's what real mail clients use to show the little verified checkmark. Skipping it means a
+    // domain could in principle publish a BIMI record without properly authenticating its mail and
+    // still get its logo shown here. This app doesn't verify DKIM/DMARC on incoming mail at all
+    // today (the From header is trusted as-is either way), so this doesn't meaningfully change the
+    // existing trust model — it's a cosmetic lookup, not a security signal.
+    private async Task<string?> FetchAndCacheBimiAsync(string domain, string path, CancellationToken ct)
+    {
+        try
+        {
+            var dohUrl = $"https://dns.google/resolve?name={Uri.EscapeDataString($"default._bimi.{domain}")}&type=TXT";
+            var json = await Http.GetStringAsync(dohUrl, ct);
+            var response = JsonSerializer.Deserialize<DohResponse>(json, DohJsonOptions);
+            var record = response?.Answer?
+                .Select(a => a.Data)
+                .FirstOrDefault(d => d is not null && d.Contains("BIMI1", StringComparison.OrdinalIgnoreCase));
+            if (record is null)
+                return null;
+
+            var logoUrl = ParseBimiLogoUrl(record);
+            if (logoUrl is null)
+                return null;
+
+            var bytes = await Http.GetByteArrayAsync(logoUrl, ct);
+            if (bytes.Length == 0)
+                return null;
+
+            await File.WriteAllBytesAsync(path, bytes, ct);
+            return path;
+        }
+        catch
+        {
+            return null;
+        }
+        finally
+        {
+            _inFlight.TryRemove($"bimi:{domain}", out _);
+        }
+    }
+
+    // Parses "v=BIMI1; l=https://example.com/logo.svg; a=https://example.com/vmc.pem" (the "a="
+    // certificate field is ignored — see the comment on FetchAndCacheBimiAsync). Requires the logo
+    // URL to be HTTPS, per the BIMI spec.
+    private static string? ParseBimiLogoUrl(string record)
+    {
+        foreach (var part in record.Trim('"').Split(';'))
+        {
+            var kv = part.Trim();
+            if (!kv.StartsWith("l=", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var url = kv[2..].Trim();
+            return Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps
+                ? url
+                : null;
+        }
+
+        return null;
+    }
+
+    private sealed class DohResponse
+    {
+        public int Status { get; set; }
+        public DohAnswer[]? Answer { get; set; }
+    }
+
+    private sealed class DohAnswer
+    {
+        [JsonPropertyName("data")]
+        public string? Data { get; set; }
+    }
 
     private async Task<string?> FetchAndCacheSvgAsync(string slug, string path, CancellationToken ct)
     {
