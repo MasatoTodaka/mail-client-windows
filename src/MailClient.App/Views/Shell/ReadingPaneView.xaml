@@ -72,12 +72,14 @@
                                 VerticalAlignment="Center" />
                         </Border>
                         <!-- Overlays the colored-initial fallback once (if) a real logo for this
-                             sender's domain is fetched — see UpdateSenderLogoAsync. -->
-                        <Ellipse>
-                            <Ellipse.Fill>
+                             sender's domain is fetched — see UpdateSenderLogoAsync. A Border
+                             clipping its Background to CornerRadius anti-aliases noticeably more
+                             smoothly than an Ellipse filled with the same ImageBrush. -->
+                        <Border CornerRadius="18">
+                            <Border.Background>
                                 <ImageBrush x:Name="SenderLogoBrush" Stretch="UniformToFill" />
-                            </Ellipse.Fill>
-                        </Ellipse>
+                            </Border.Background>
+                        </Border>
                     </Grid>
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                         <TextBlock Text="{x:Bind ViewModel.SelectedMessage.FromDisplay, Mode=OneWay}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />

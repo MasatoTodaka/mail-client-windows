@@ -104,12 +104,15 @@
                             <!-- Overlays the colored-initial fallback once (if) a logo for this
                                  sender's domain is already cached — re-evaluated on every
                                  rebind (unlike a Loaded handler), so a recycled container never
-                                 keeps showing a previous row's logo. -->
-                            <Ellipse>
-                                <Ellipse.Fill>
+                                 keeps showing a previous row's logo. A Border clipping its
+                                 Background to CornerRadius anti-aliases noticeably more smoothly
+                                 than an Ellipse filled with the same ImageBrush (same technique as
+                                 the account unread-count badge, which never showed this problem). -->
+                            <Border CornerRadius="17">
+                                <Border.Background>
                                     <ImageBrush Stretch="UniformToFill" ImageSource="{x:Bind FromAddress, Converter={StaticResource SenderLogoImageConverter}}" />
-                                </Ellipse.Fill>
-                            </Ellipse>
+                                </Border.Background>
+                            </Border>
                         </Grid>
                         <StackPanel Grid.Column="2" Spacing="2">
                             <Grid ColumnSpacing="8">
