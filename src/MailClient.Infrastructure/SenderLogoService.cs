@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using MailClient.Core;
 using MailClient.Core.Abstractions;
 
@@ -176,7 +178,7 @@ public sealed class SenderLogoService(AppDataPaths appDataPaths, ISettingsStore 
             if (bytes.Length == 0)
                 return null;
 
-            await File.WriteAllBytesAsync(path, bytes, ct);
+            await File.WriteAllBytesAsync(path, SanitizeSvg(bytes), ct);
             return path;
         }
         catch
@@ -187,6 +189,30 @@ public sealed class SenderLogoService(AppDataPaths appDataPaths, ISettingsStore 
         {
             _inFlight.TryRemove($"bimi:{domain}", out _);
         }
+    }
+
+    // Worked around a real, reproduced WinUI SvgImageSource rendering bug: a live BIMI logo
+    // (Domino's Pizza Japan's, fetched from their own CDN) rendered as a completely blank white
+    // circle in this app despite being a well-formed, simple SVG (Adobe Illustrator export, no
+    // gradients/clipPaths/masks) — while other BIMI logos (Yamato Transport's, e.g.) rendered
+    // fine. Bisected the two differences against a working file and confirmed, by testing on the
+    // live app with a full process restart between each change (WinUI/the OS appears to cache a
+    // decoded SvgImageSource by file path, so overwriting the same path without restarting
+    // silently keeps showing the old decode — a trap when iterating on this):
+    //  - a `fill="none"` on the wrapping <g> wasn't being overridden by child <path fill="#..">
+    //    elements the way the SVG spec requires
+    //  - an explicit `width="200px" height="200px"` (with a literal "px" unit) on the root <svg>,
+    //    alongside a viewBox, confused the intrinsic-size calculation
+    // Both were verified together to fix the actual broken file; not independently isolated
+    // (removing the "px"-unit dimensions alone may already be sufficient), but both are safe,
+    // narrowly-scoped, standard SVG-optimizer-style transforms that shouldn't change how any
+    // already-working SVG renders.
+    private static byte[] SanitizeSvg(byte[] bytes)
+    {
+        var text = Encoding.UTF8.GetString(bytes);
+        text = Regex.Replace(text, "(<g\\b[^>]*?)\\s+fill=\"none\"", "$1");
+        text = Regex.Replace(text, "\\s+(width|height)=\"[\\d.]+px\"", "");
+        return Encoding.UTF8.GetBytes(text);
     }
 
     // Parses "v=BIMI1; l=https://example.com/logo.svg; a=https://example.com/vmc.pem" (the "a="
@@ -230,7 +256,7 @@ public sealed class SenderLogoService(AppDataPaths appDataPaths, ISettingsStore 
             if (bytes.Length == 0)
                 return null;
 
-            await File.WriteAllBytesAsync(path, bytes, ct);
+            await File.WriteAllBytesAsync(path, SanitizeSvg(bytes), ct);
             return path;
         }
         catch
