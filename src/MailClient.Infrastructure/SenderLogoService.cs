@@ -29,6 +29,15 @@ public sealed class SenderLogoService(AppDataPaths appDataPaths, ISettingsStore 
         return await _inFlight.GetOrAdd(domain, _ => FetchAndCacheAsync(domain, path, ct));
     }
 
+    public bool IsLogoCached(string emailAddress)
+    {
+        var domain = ExtractDomain(emailAddress);
+        if (domain is null)
+            return false;
+
+        return File.Exists(Path.Combine(appDataPaths.LogosDirectory, $"{domain}.png"));
+    }
+
     private async Task<string?> FetchAndCacheAsync(string domain, string path, CancellationToken ct)
     {
         try

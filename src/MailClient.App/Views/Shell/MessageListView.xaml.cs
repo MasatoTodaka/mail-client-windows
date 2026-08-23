@@ -6,9 +6,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Media.Imaging;
-using Microsoft.UI.Xaml.Shapes;
 
 namespace MailClient.App.Views.Shell;
 
@@ -96,19 +93,5 @@ public sealed partial class MessageListView : UserControl
             moveSubItem.Items.Add(targetItem);
         }
         moveSubItem.IsEnabled = targets.Count > 0;
-    }
-
-    // Overlays the sender's domain logo (if the setting is on and one is cached/fetchable) on
-    // top of the colored-initial avatar underneath. Fires again whenever the ListView re-uses
-    // this container for a different row (virtualization), which is what we want — each row
-    // needs its own sender's logo, and the ISenderLogoService call is a cheap local file check
-    // once a domain has already been fetched once.
-    private async void OnAvatarLoaded(object sender, RoutedEventArgs e)
-    {
-        if (sender is not Ellipse { Tag: string emailAddress, Fill: ImageBrush brush } || string.IsNullOrWhiteSpace(emailAddress))
-            return;
-
-        var path = await ViewModel.GetSenderLogoPathAsync(emailAddress);
-        brush.ImageSource = path is null ? null : new BitmapImage(new Uri(path));
     }
 }

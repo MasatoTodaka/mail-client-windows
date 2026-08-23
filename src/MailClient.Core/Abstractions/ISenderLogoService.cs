@@ -10,4 +10,8 @@ public interface ISenderLogoService
     // address has no usable domain, or the fetch failed — callers should fall back to the
     // colored-initial avatar in all of those cases.
     Task<string?> GetLogoPathAsync(string emailAddress, CancellationToken ct);
+
+    // Synchronous, local-only check (no network) — lets a caller tell a genuine new fetch apart
+    // from a cache hit before calling GetLogoPathAsync, without an async round trip.
+    bool IsLogoCached(string emailAddress);
 }

@@ -42,9 +42,6 @@ public sealed partial class MessageListViewModel : ViewModelBase
         _syncService.MessageArrived += OnMessageArrived;
     }
 
-    public Task<string?> GetSenderLogoPathAsync(string emailAddress) =>
-        _senderLogoService.GetLogoPathAsync(emailAddress, CancellationToken.None);
-
     public ObservableCollection<MailMessage> Messages { get; } = [];
 
     [ObservableProperty]
@@ -69,9 +66,8 @@ public sealed partial class MessageListViewModel : ViewModelBase
                 await _syncService.SyncFolderAsync(folder.Id, SyncDepth.RecentOnly, CancellationToken.None);
 
             var messages = await LoadPageAsync(folder);
-            Messages.Clear();
-            foreach (var message in messages)
-                Messages.Add(message);
+            ApplyMessages(messages);
+            _ = PrefetchLogosAsync(messages);
         }
         catch (Exception ex)
         {
@@ -117,9 +113,50 @@ public sealed partial class MessageListViewModel : ViewModelBase
             return;
 
         var messages = await LoadPageAsync(_currentFolder);
+        ApplyMessages(messages);
+        _ = PrefetchLogosAsync(messages);
+    }
+
+    private void ApplyMessages(IReadOnlyList<MailMessage> messages)
+    {
         Messages.Clear();
         foreach (var message in messages)
             Messages.Add(message);
+    }
+
+    // Fire-and-forget: makes sure every unique sender domain on the page has its logo cached
+    // (a no-op per domain once already cached), then re-applies the page once so any logos that
+    // were genuinely fetched just now show up immediately instead of waiting for some unrelated
+    // refresh trigger. Calls ApplyMessages directly (not RefreshCurrentAsync) so this doesn't
+    // recursively kick off another prefetch pass.
+    private async Task PrefetchLogosAsync(IReadOnlyList<MailMessage> messages)
+    {
+        try
+        {
+            var addressesToFetch = messages
+                .Select(m => m.FromAddress)
+                .Where(a => !string.IsNullOrWhiteSpace(a))
+                .Distinct()
+                .Where(a => !_senderLogoService.IsLogoCached(a))
+                .ToList();
+
+            if (addressesToFetch.Count == 0)
+                return;
+
+            var fetchedAny = false;
+            foreach (var address in addressesToFetch)
+            {
+                if (await _senderLogoService.GetLogoPathAsync(address, CancellationToken.None) is not null)
+                    fetchedAny = true;
+            }
+
+            if (fetchedAny && _currentFolder is not null)
+                ApplyMessages(await LoadPageAsync(_currentFolder));
+        }
+        catch
+        {
+            // Best-effort: a logo prefetch failure must never disturb the message list itself.
+        }
     }
 
     private Task<IReadOnlyList<MailMessage>> LoadPageAsync(MailFolder folder) => folder.SpecialUse switch

@@ -17,6 +17,7 @@
         <converters:DateTimeOffsetToShortStringConverter x:Key="DateTimeOffsetToShortStringConverter" />
         <converters:SenderInitialConverter x:Key="SenderInitialConverter" />
         <converters:SenderAvatarColorConverter x:Key="SenderAvatarColorConverter" />
+        <converters:SenderLogoImageConverter x:Key="SenderLogoImageConverter" />
     </UserControl.Resources>
 
     <Grid>
@@ -92,11 +93,13 @@
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center" />
                             </Border>
-                            <!-- Overlays the colored-initial fallback once (if) a real logo for
-                                 this sender's domain is fetched — see OnAvatarLoaded. -->
-                            <Ellipse Loaded="OnAvatarLoaded" Tag="{x:Bind FromAddress}">
+                            <!-- Overlays the colored-initial fallback once (if) a logo for this
+                                 sender's domain is already cached — re-evaluated on every
+                                 rebind (unlike a Loaded handler), so a recycled container never
+                                 keeps showing a previous row's logo. -->
+                            <Ellipse>
                                 <Ellipse.Fill>
-                                    <ImageBrush Stretch="UniformToFill" />
+                                    <ImageBrush Stretch="UniformToFill" ImageSource="{x:Bind FromAddress, Converter={StaticResource SenderLogoImageConverter}}" />
                                 </Ellipse.Fill>
                             </Ellipse>
                         </Grid>
