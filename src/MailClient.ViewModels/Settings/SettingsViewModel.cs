@@ -16,6 +16,7 @@ public sealed partial class SettingsViewModel(
 {
     private bool _isLoadingNotificationsEnabled;
     private bool _isLoadingOtpAutoCopyEnabled;
+    private bool _isLoadingShowSenderLogosEnabled;
 
     public ObservableCollection<Account> Accounts { get; } = [];
 
@@ -24,6 +25,9 @@ public sealed partial class SettingsViewModel(
 
     [ObservableProperty]
     private bool _otpAutoCopyEnabled = true;
+
+    [ObservableProperty]
+    private bool _showSenderLogosEnabled;
 
     // Raised after an account is deleted, so the sidebar can drop it without a full window reopen.
     public event EventHandler<Guid>? AccountDeleted;
@@ -48,6 +52,10 @@ public sealed partial class SettingsViewModel(
         _isLoadingOtpAutoCopyEnabled = true;
         OtpAutoCopyEnabled = await settingsStore.GetOtpAutoCopyEnabledAsync(CancellationToken.None);
         _isLoadingOtpAutoCopyEnabled = false;
+
+        _isLoadingShowSenderLogosEnabled = true;
+        ShowSenderLogosEnabled = await settingsStore.GetShowSenderLogosEnabledAsync(CancellationToken.None);
+        _isLoadingShowSenderLogosEnabled = false;
     }
 
     [RelayCommand]
@@ -74,5 +82,13 @@ public sealed partial class SettingsViewModel(
             return;
 
         _ = settingsStore.SetOtpAutoCopyEnabledAsync(value, CancellationToken.None);
+    }
+
+    partial void OnShowSenderLogosEnabledChanged(bool value)
+    {
+        if (_isLoadingShowSenderLogosEnabled)
+            return;
+
+        _ = settingsStore.SetShowSenderLogosEnabledAsync(value, CancellationToken.None);
     }
 }

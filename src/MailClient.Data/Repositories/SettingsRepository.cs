@@ -6,6 +6,7 @@ public sealed class SettingsRepository(MailDbContext db) : ISettingsStore
 {
     private const string NotificationsEnabledKey = "notifications_enabled";
     private const string OtpAutoCopyEnabledKey = "otp_autocopy_enabled";
+    private const string ShowSenderLogosEnabledKey = "show_sender_logos_enabled";
 
     public async Task<bool> GetNotificationsEnabledAsync(CancellationToken ct)
     {
@@ -24,6 +25,15 @@ public sealed class SettingsRepository(MailDbContext db) : ISettingsStore
 
     public Task SetOtpAutoCopyEnabledAsync(bool enabled, CancellationToken ct) =>
         SetAsync(OtpAutoCopyEnabledKey, enabled ? "1" : "0", ct);
+
+    public async Task<bool> GetShowSenderLogosEnabledAsync(CancellationToken ct)
+    {
+        var value = await GetAsync(ShowSenderLogosEnabledKey, ct);
+        return value == "1"; // default: disabled
+    }
+
+    public Task SetShowSenderLogosEnabledAsync(bool enabled, CancellationToken ct) =>
+        SetAsync(ShowSenderLogosEnabledKey, enabled ? "1" : "0", ct);
 
     public async Task<bool> GetReceivedDateBackfillCompleteAsync(Guid accountId, CancellationToken ct) =>
         await GetAsync(ReceivedDateBackfillCompleteKey(accountId), ct) == "1";

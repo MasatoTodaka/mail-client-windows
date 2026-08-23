@@ -19,6 +19,14 @@
             <ToggleSwitch Header="新着メールをデスクトップ通知で知らせる" IsOn="{x:Bind ViewModel.NotificationsEnabled, Mode=TwoWay}" />
             <ToggleSwitch Header="ワンタイムパスワードを自動でクリップボードにコピーする" IsOn="{x:Bind ViewModel.OtpAutoCopyEnabled, Mode=TwoWay}" />
 
+            <TextBlock Text="表示" Style="{ThemeResource SubtitleTextBlockStyle}" Margin="0,16,0,0" />
+            <ToggleSwitch Header="差出人のアイコンに企業ロゴを表示する" IsOn="{x:Bind ViewModel.ShowSenderLogosEnabled, Mode=TwoWay}" />
+            <TextBlock
+                Text="送信者のメールアドレスのドメインを外部サービス（Google）へ問い合わせてロゴを取得します。取得できない場合は今まで通り色付きイニシャルを表示します。"
+                Opacity="0.7"
+                TextWrapping="Wrap"
+                FontSize="12" />
+
             <TextBlock Text="アカウント" Style="{ThemeResource SubtitleTextBlockStyle}" Margin="0,16,0,0" />
             <Button Click="OnAddAccountClick" HorizontalAlignment="Left" AutomationProperties.Name="アカウントを追加">
                 <StackPanel Orientation="Horizontal" Spacing="8">

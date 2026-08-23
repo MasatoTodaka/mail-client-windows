@@ -19,9 +19,13 @@ public sealed partial class ReadingPaneViewModel(
     ICredentialStore credentialStore,
     Func<IImapAccountClient> imapClientFactory,
     AppDataPaths appDataPaths,
-    MessageActionService messageActions) : ViewModelBase
+    MessageActionService messageActions,
+    ISenderLogoService senderLogoService) : ViewModelBase
 {
     private string? _rawHtml;
+
+    public Task<string?> GetSenderLogoPathAsync(string emailAddress) =>
+        senderLogoService.GetLogoPathAsync(emailAddress, CancellationToken.None);
 
     [ObservableProperty]
     private MailMessage? _selectedMessage;

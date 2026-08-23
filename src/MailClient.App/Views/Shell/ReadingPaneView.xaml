@@ -60,19 +60,25 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <Border
-                        Grid.Column="0"
-                        Width="36"
-                        Height="36"
-                        CornerRadius="18"
-                        Background="{x:Bind SenderAvatarColor(ViewModel.SelectedMessage.FromDisplay), Mode=OneWay}">
-                        <TextBlock
-                            Text="{x:Bind SenderInitial(ViewModel.SelectedMessage.FromDisplay), Mode=OneWay}"
-                            Foreground="White"
-                            FontWeight="SemiBold"
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Center" />
-                    </Border>
+                    <Grid Grid.Column="0" Width="36" Height="36">
+                        <Border
+                            CornerRadius="18"
+                            Background="{x:Bind SenderAvatarColor(ViewModel.SelectedMessage.FromDisplay), Mode=OneWay}">
+                            <TextBlock
+                                Text="{x:Bind SenderInitial(ViewModel.SelectedMessage.FromDisplay), Mode=OneWay}"
+                                Foreground="White"
+                                FontWeight="SemiBold"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center" />
+                        </Border>
+                        <!-- Overlays the colored-initial fallback once (if) a real logo for this
+                             sender's domain is fetched — see UpdateSenderLogoAsync. -->
+                        <Ellipse>
+                            <Ellipse.Fill>
+                                <ImageBrush x:Name="SenderLogoBrush" Stretch="UniformToFill" />
+                            </Ellipse.Fill>
+                        </Ellipse>
+                    </Grid>
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                         <TextBlock Text="{x:Bind ViewModel.SelectedMessage.FromDisplay, Mode=OneWay}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                         <TextBlock Text="{x:Bind ViewModel.SelectedMessage.FromAddress, Mode=OneWay}" Opacity="0.6" FontSize="12" TextTrimming="CharacterEllipsis" />

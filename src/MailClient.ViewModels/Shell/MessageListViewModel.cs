@@ -22,6 +22,7 @@ public sealed partial class MessageListViewModel : ViewModelBase
     private readonly IMailSyncService _syncService;
     private readonly IUiDispatcher _uiDispatcher;
     private readonly MessageActionService _messageActions;
+    private readonly ISenderLogoService _senderLogoService;
     private MailFolder? _currentFolder;
 
     public MessageListViewModel(
@@ -29,15 +30,20 @@ public sealed partial class MessageListViewModel : ViewModelBase
         IFolderStore folderStore,
         IMailSyncService syncService,
         IUiDispatcher uiDispatcher,
-        MessageActionService messageActions)
+        MessageActionService messageActions,
+        ISenderLogoService senderLogoService)
     {
         _messageStore = messageStore;
         _folderStore = folderStore;
         _syncService = syncService;
         _uiDispatcher = uiDispatcher;
         _messageActions = messageActions;
+        _senderLogoService = senderLogoService;
         _syncService.MessageArrived += OnMessageArrived;
     }
+
+    public Task<string?> GetSenderLogoPathAsync(string emailAddress) =>
+        _senderLogoService.GetLogoPathAsync(emailAddress, CancellationToken.None);
 
     public ObservableCollection<MailMessage> Messages { get; } = [];
 

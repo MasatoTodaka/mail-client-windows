@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Imaging;
 
 namespace MailClient.App.Views.Shell;
 
@@ -21,7 +22,22 @@ public sealed partial class ReadingPaneView : UserControl
         {
             if (e.PropertyName == nameof(ReadingPaneViewModel.HtmlBody) && ViewModel.HtmlBody is not null)
                 await NavigateAsync(ViewModel.HtmlBody);
+            if (e.PropertyName == nameof(ReadingPaneViewModel.SelectedMessage))
+                await UpdateSenderLogoAsync();
         };
+    }
+
+    private async Task UpdateSenderLogoAsync()
+    {
+        var message = ViewModel.SelectedMessage;
+        if (message is null)
+        {
+            SenderLogoBrush.ImageSource = null;
+            return;
+        }
+
+        var path = await ViewModel.GetSenderLogoPathAsync(message.FromAddress);
+        SenderLogoBrush.ImageSource = path is null ? null : new BitmapImage(new Uri(path));
     }
 
     private async Task NavigateAsync(string html)

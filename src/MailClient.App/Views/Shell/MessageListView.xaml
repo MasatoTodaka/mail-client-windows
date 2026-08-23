@@ -80,21 +80,26 @@
                             Margin="0,5,0,0"
                             Fill="{ThemeResource AccentFillColorDefaultBrush}"
                             Visibility="{x:Bind IsRead, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
-                        <Border
-                            Grid.Column="1"
-                            Width="34"
-                            Height="34"
-                            CornerRadius="17"
-                            VerticalAlignment="Top"
-                            Background="{x:Bind FromDisplay, Converter={StaticResource SenderAvatarColorConverter}}">
-                            <TextBlock
-                                Text="{x:Bind FromDisplay, Converter={StaticResource SenderInitialConverter}}"
-                                Foreground="White"
-                                FontWeight="SemiBold"
-                                FontSize="14"
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center" />
-                        </Border>
+                        <Grid Grid.Column="1" Width="34" Height="34" VerticalAlignment="Top">
+                            <Border
+                                CornerRadius="17"
+                                Background="{x:Bind FromDisplay, Converter={StaticResource SenderAvatarColorConverter}}">
+                                <TextBlock
+                                    Text="{x:Bind FromDisplay, Converter={StaticResource SenderInitialConverter}}"
+                                    Foreground="White"
+                                    FontWeight="SemiBold"
+                                    FontSize="14"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center" />
+                            </Border>
+                            <!-- Overlays the colored-initial fallback once (if) a real logo for
+                                 this sender's domain is fetched — see OnAvatarLoaded. -->
+                            <Ellipse Loaded="OnAvatarLoaded" Tag="{x:Bind FromAddress}">
+                                <Ellipse.Fill>
+                                    <ImageBrush Stretch="UniformToFill" />
+                                </Ellipse.Fill>
+                            </Ellipse>
+                        </Grid>
                         <StackPanel Grid.Column="2" Spacing="2">
                             <Grid ColumnSpacing="8">
                                 <Grid.ColumnDefinitions>

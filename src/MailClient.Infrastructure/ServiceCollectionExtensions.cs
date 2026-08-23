@@ -43,6 +43,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ISettingsStore, SettingsRepository>();
         services.AddSingleton<IMailRuleStore, MailRuleRepository>();
         services.AddSingleton<IMailRuleEngine, MailRuleEngine>();
+        services.AddSingleton<ISenderLogoService, SenderLogoService>();
 
         // IImapAccountClient wraps one connection, not shared state — resolve a fresh instance
         // per account via this factory rather than injecting the interface directly.
