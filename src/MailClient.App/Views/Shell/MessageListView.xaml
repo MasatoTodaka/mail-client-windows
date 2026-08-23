@@ -89,15 +89,15 @@
                             Margin="0,5,0,0"
                             Fill="{ThemeResource AccentFillColorDefaultBrush}"
                             Visibility="{x:Bind IsRead, Converter={StaticResource InverseBoolToVisibilityConverter}, Mode=OneWay}" />
-                        <Grid Grid.Column="1" Width="34" Height="34" VerticalAlignment="Top">
+                        <Grid Grid.Column="1" Width="40" Height="40" VerticalAlignment="Top">
                             <Border
-                                CornerRadius="17"
+                                CornerRadius="20"
                                 Background="{x:Bind FromDisplay, Converter={StaticResource SenderAvatarColorConverter}}">
                                 <TextBlock
                                     Text="{x:Bind FromDisplay, Converter={StaticResource SenderInitialConverter}}"
                                     Foreground="White"
                                     FontWeight="SemiBold"
-                                    FontSize="14"
+                                    FontSize="16"
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center" />
                             </Border>
@@ -107,8 +107,10 @@
                                  keeps showing a previous row's logo. A Border clipping its
                                  Background to CornerRadius anti-aliases noticeably more smoothly
                                  than an Ellipse filled with the same ImageBrush (same technique as
-                                 the account unread-count badge, which never showed this problem). -->
-                            <Border CornerRadius="17">
+                                 the account unread-count badge, which never showed this problem).
+                                 The larger 40px size (was 34px) also makes any residual edge
+                                 softness proportionally less noticeable. -->
+                            <Border CornerRadius="20">
                                 <Border.Background>
                                     <ImageBrush Stretch="UniformToFill" ImageSource="{x:Bind FromAddress, Converter={StaticResource SenderLogoImageConverter}}" />
                                 </Border.Background>
