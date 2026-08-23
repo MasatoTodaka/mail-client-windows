@@ -126,6 +126,7 @@ public sealed class MailSyncService(
                 UnreadCount = unreadCount,
                 TotalCount = totalCount,
                 LastSyncedAt = DateTimeOffset.UtcNow,
+                SortOrder = folder.SortOrder,
             };
             await folderStore.SaveAsync(updatedFolder, ct);
 
@@ -136,6 +137,50 @@ public sealed class MailSyncService(
         {
             SyncProgressChanged?.Invoke(this, new SyncProgressEventArgs(account.Id, folder.Id, $"同期エラー: {ex.Message}", isComplete: true));
             throw;
+        }
+    }
+
+    public async Task SyncAllFolderCountsAsync(Guid accountId, CancellationToken ct)
+    {
+        var account = await accountStore.GetByIdAsync(accountId, ct);
+        var password = account is null ? null : credentialStore.GetImapPassword(accountId);
+        if (account is null || password is null)
+            return;
+
+        var folders = await folderStore.GetByAccountAsync(accountId, ct);
+
+        try
+        {
+            using var client = imapClientFactory();
+            await client.ConnectAsync(account, password, ct);
+
+            foreach (var folder in folders)
+            {
+                if (ct.IsCancellationRequested || folder.ImapFullName is null)
+                    continue;
+
+                try
+                {
+                    var (totalCount, unreadCount) = await client.GetFolderStatusAsync(folder.ImapFullName, ct);
+                    if (totalCount == folder.TotalCount && unreadCount == folder.UnreadCount)
+                        continue;
+
+                    await folderStore.UpdateCountsAsync(folder.Id, unreadCount, totalCount, ct);
+                    FolderCountsChanged?.Invoke(this, new FolderCountsChangedEventArgs(folder.Id, unreadCount, totalCount));
+                }
+                catch
+                {
+                    // Best-effort per folder — one folder's STATUS failing (e.g. renamed/removed
+                    // server-side) must not block badging the rest.
+                }
+            }
+
+            await client.DisconnectAsync();
+        }
+        catch
+        {
+            // Best-effort: the account may be temporarily unreachable; live IDLE/RecentOnly
+            // syncs will naturally correct counts once it's back.
         }
     }
 

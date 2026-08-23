@@ -13,6 +13,10 @@ public interface IImapAccountClient : IDisposable
     Task<IReadOnlyList<MailFolder>> ListFoldersAsync(CancellationToken ct);
     Task<(uint UidValidity, uint UidNext)> SelectFolderAsync(string imapFullName, CancellationToken ct);
 
+    // Lightweight IMAP STATUS query (no message fetch) — for badging folders the user hasn't
+    // opened yet with accurate total/unread counts.
+    Task<(int TotalCount, int UnreadCount)> GetFolderStatusAsync(string imapFullName, CancellationToken ct);
+
     Task<IReadOnlyList<MailMessage>> FetchHeadersAsync(
         string imapFullName, uint fromUid, uint? toUid, int maxCount, CancellationToken ct);
 

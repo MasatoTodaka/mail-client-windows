@@ -79,6 +79,16 @@ public sealed class ImapAccountClient : IImapAccountClient
         return (folder.UidValidity, folder.UidNext?.Id ?? 0u);
     }
 
+    public async Task<(int TotalCount, int UnreadCount)> GetFolderStatusAsync(string imapFullName, CancellationToken ct)
+    {
+        var folder = await _client.GetFolderAsync(imapFullName, ct);
+        if (folder.IsOpen)
+            return (folder.Count, folder.Unread);
+
+        await folder.StatusAsync(StatusItems.Count | StatusItems.Unread, ct);
+        return (folder.Count, folder.Unread);
+    }
+
     public async Task<IReadOnlyList<MailMessage>> FetchHeadersAsync(
         string imapFullName, uint fromUid, uint? toUid, int maxCount, CancellationToken ct)
     {

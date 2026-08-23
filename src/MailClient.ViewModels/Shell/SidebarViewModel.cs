@@ -135,6 +135,11 @@ public sealed partial class SidebarViewModel : ViewModelBase
             // MessageListViewModel syncs on-demand too, so a race here just means a redundant sync.
             _ = _mailSyncService.InitialSyncAsync(node.Account.Id, CancellationToken.None);
 
+            // Fire-and-forget: badges every folder's unread/total count (lightweight IMAP
+            // STATUS, no header fetch) so folders the user hasn't opened yet aren't stuck
+            // showing stale/zero counts.
+            _ = _mailSyncService.SyncAllFolderCountsAsync(node.Account.Id, CancellationToken.None);
+
             // We just proved this account is reachable — drain anything queued while it wasn't.
             _ = _outboxProcessor.ProcessAsync(node.Account.Id, CancellationToken.None);
 

@@ -14,6 +14,10 @@ public interface IMailSyncService
 {
     Task InitialSyncAsync(Guid accountId, CancellationToken ct);
     Task SyncFolderAsync(Guid folderId, SyncDepth depth, CancellationToken ct);
+
+    // Lightweight (IMAP STATUS, no header fetch) unread/total badge refresh for every folder in
+    // the account, including ones the user hasn't opened yet.
+    Task SyncAllFolderCountsAsync(Guid accountId, CancellationToken ct);
     Task StartLiveUpdatesAsync(Guid accountId, CancellationToken ct);
     Task StopLiveUpdatesAsync(Guid accountId);
 
