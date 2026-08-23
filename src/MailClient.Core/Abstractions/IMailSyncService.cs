@@ -18,6 +18,11 @@ public interface IMailSyncService
     // Lightweight (IMAP STATUS, no header fetch) unread/total badge refresh for every folder in
     // the account, including ones the user hasn't opened yet.
     Task SyncAllFolderCountsAsync(Guid accountId, CancellationToken ct);
+
+    // One-time-per-account: re-fetches IMAP INTERNALDATE for every already-cached message so
+    // its sort date reflects actual server arrival, not the sender's Date: header. No-ops once
+    // already run for this account (tracked via ISettingsStore).
+    Task BackfillReceivedDatesAsync(Guid accountId, CancellationToken ct);
     Task StartLiveUpdatesAsync(Guid accountId, CancellationToken ct);
     Task StopLiveUpdatesAsync(Guid accountId);
 

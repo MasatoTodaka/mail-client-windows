@@ -25,6 +25,15 @@ public sealed class SettingsRepository(MailDbContext db) : ISettingsStore
     public Task SetOtpAutoCopyEnabledAsync(bool enabled, CancellationToken ct) =>
         SetAsync(OtpAutoCopyEnabledKey, enabled ? "1" : "0", ct);
 
+    public async Task<bool> GetReceivedDateBackfillCompleteAsync(Guid accountId, CancellationToken ct) =>
+        await GetAsync(ReceivedDateBackfillCompleteKey(accountId), ct) == "1";
+
+    public Task SetReceivedDateBackfillCompleteAsync(Guid accountId, CancellationToken ct) =>
+        SetAsync(ReceivedDateBackfillCompleteKey(accountId), "1", ct);
+
+    private static string ReceivedDateBackfillCompleteKey(Guid accountId) =>
+        $"received_date_backfill_complete:{accountId}";
+
     private async Task<string?> GetAsync(string key, CancellationToken ct)
     {
         await using var connection = db.CreateConnection();

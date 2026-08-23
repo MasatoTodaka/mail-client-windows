@@ -24,6 +24,7 @@ public interface IMessageStore
     // backfill — that one has to happen at the file-I/O layer (MailClient.App), not here.
     Task<IReadOnlyList<MailMessage>> GetDownloadedBodyMessagesAsync(CancellationToken ct);
     Task SaveAsync(MailMessage message, CancellationToken ct);
+    Task UpdateDateAsync(Guid messageId, DateTimeOffset date, CancellationToken ct);
     Task DeleteAsync(Guid id, CancellationToken ct);
     Task SetReadAsync(Guid id, bool isRead, CancellationToken ct);
     Task SetFlaggedAsync(Guid id, bool isFlagged, CancellationToken ct);

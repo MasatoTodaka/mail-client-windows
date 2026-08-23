@@ -17,6 +17,11 @@ public interface IImapAccountClient : IDisposable
     // opened yet with accurate total/unread counts.
     Task<(int TotalCount, int UnreadCount)> GetFolderStatusAsync(string imapFullName, CancellationToken ct);
 
+    // Lightweight fetch of just INTERNALDATE (server-received time) for an explicit UID set —
+    // for backfilling already-cached messages' sort date without re-fetching full headers.
+    Task<IReadOnlyDictionary<uint, DateTimeOffset>> FetchInternalDatesAsync(
+        string imapFullName, IReadOnlyList<uint> uids, CancellationToken ct);
+
     Task<IReadOnlyList<MailMessage>> FetchHeadersAsync(
         string imapFullName, uint fromUid, uint? toUid, int maxCount, CancellationToken ct);
 

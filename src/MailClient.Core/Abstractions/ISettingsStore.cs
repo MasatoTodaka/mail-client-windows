@@ -9,4 +9,10 @@ public interface ISettingsStore
 
     Task<bool> GetOtpAutoCopyEnabledAsync(CancellationToken ct);
     Task SetOtpAutoCopyEnabledAsync(bool enabled, CancellationToken ct);
+
+    // One-time-per-account guard for the received-date backfill (re-fetches IMAP INTERNALDATE
+    // for already-cached messages so sort order matches actual arrival, not the sender's
+    // self-reported Date: header). Keeps it from re-running on every launch once done.
+    Task<bool> GetReceivedDateBackfillCompleteAsync(Guid accountId, CancellationToken ct);
+    Task SetReceivedDateBackfillCompleteAsync(Guid accountId, CancellationToken ct);
 }

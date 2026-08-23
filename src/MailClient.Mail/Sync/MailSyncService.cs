@@ -11,9 +11,11 @@ public sealed class MailSyncService(
     IFolderStore folderStore,
     IMessageStore messageStore,
     ICredentialStore credentialStore,
+    ISettingsStore settingsStore,
     Func<IImapAccountClient> imapClientFactory) : IMailSyncService
 {
     private const int RecentHeaderCount = 50;
+    private const int ReceivedDateBackfillBatchSize = 500;
 
     private readonly ConcurrentDictionary<Guid, ImapIdleWatcher> _watchers = new();
 
@@ -181,6 +183,66 @@ public sealed class MailSyncService(
         {
             // Best-effort: the account may be temporarily unreachable; live IDLE/RecentOnly
             // syncs will naturally correct counts once it's back.
+        }
+    }
+
+    public async Task BackfillReceivedDatesAsync(Guid accountId, CancellationToken ct)
+    {
+        if (await settingsStore.GetReceivedDateBackfillCompleteAsync(accountId, ct))
+            return;
+
+        var account = await accountStore.GetByIdAsync(accountId, ct);
+        var password = account is null ? null : credentialStore.GetImapPassword(accountId);
+        if (account is null || password is null)
+            return;
+
+        var folders = await folderStore.GetByAccountAsync(accountId, ct);
+        var messagesByFolder = (await messageStore.GetByAccountAsync(accountId, ct))
+            .GroupBy(m => m.FolderId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        try
+        {
+            using var client = imapClientFactory();
+            await client.ConnectAsync(account, password, ct);
+
+            foreach (var folder in folders)
+            {
+                if (ct.IsCancellationRequested || folder.ImapFullName is null)
+                    continue;
+                if (!messagesByFolder.TryGetValue(folder.Id, out var localMessages) || localMessages.Count == 0)
+                    continue;
+
+                foreach (var batch in localMessages.Chunk(ReceivedDateBackfillBatchSize))
+                {
+                    if (ct.IsCancellationRequested)
+                        break;
+
+                    try
+                    {
+                        var uids = batch.Select(m => m.Uid).ToList();
+                        var internalDates = await client.FetchInternalDatesAsync(folder.ImapFullName, uids, ct);
+                        foreach (var message in batch)
+                        {
+                            if (internalDates.TryGetValue(message.Uid, out var date) && date != message.Date)
+                                await messageStore.UpdateDateAsync(message.Id, date, ct);
+                        }
+                    }
+                    catch
+                    {
+                        // Best-effort per batch — one batch failing must not block the rest,
+                        // and must not stop the whole backfill from eventually being marked done.
+                    }
+                }
+            }
+
+            await client.DisconnectAsync();
+            await settingsStore.SetReceivedDateBackfillCompleteAsync(accountId, ct);
+        }
+        catch
+        {
+            // Connection-level failure (account unreachable): don't mark complete, so this
+            // retries on a future launch instead of silently leaving stale dates forever.
         }
     }
 

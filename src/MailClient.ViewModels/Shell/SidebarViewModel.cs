@@ -140,6 +140,11 @@ public sealed partial class SidebarViewModel : ViewModelBase
             // showing stale/zero counts.
             _ = _mailSyncService.SyncAllFolderCountsAsync(node.Account.Id, CancellationToken.None);
 
+            // Fire-and-forget, one-time per account: corrects already-cached messages' sort
+            // date to IMAP INTERNALDATE (actual received time) instead of the sender's Date:
+            // header, which is what caused messages to occasionally sort out of order.
+            _ = _mailSyncService.BackfillReceivedDatesAsync(node.Account.Id, CancellationToken.None);
+
             // We just proved this account is reachable — drain anything queued while it wasn't.
             _ = _outboxProcessor.ProcessAsync(node.Account.Id, CancellationToken.None);
 

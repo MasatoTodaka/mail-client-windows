@@ -89,6 +89,25 @@ public sealed class ImapAccountClient : IImapAccountClient
         return (folder.Count, folder.Unread);
     }
 
+    public async Task<IReadOnlyDictionary<uint, DateTimeOffset>> FetchInternalDatesAsync(
+        string imapFullName, IReadOnlyList<uint> uids, CancellationToken ct)
+    {
+        var folder = await _client.GetFolderAsync(imapFullName, ct);
+        if (!folder.IsOpen)
+            await folder.OpenAsync(FolderAccess.ReadOnly, ct);
+
+        var uniqueIds = uids.Select(u => new UniqueId(u)).ToList();
+        var summaries = await folder.FetchAsync(uniqueIds, MessageSummaryItems.UniqueId | MessageSummaryItems.InternalDate, ct);
+
+        var result = new Dictionary<uint, DateTimeOffset>();
+        foreach (var summary in summaries)
+        {
+            if (summary.InternalDate is { } date)
+                result[summary.UniqueId.Id] = date;
+        }
+        return result;
+    }
+
     public async Task<IReadOnlyList<MailMessage>> FetchHeadersAsync(
         string imapFullName, uint fromUid, uint? toUid, int maxCount, CancellationToken ct)
     {
@@ -103,7 +122,8 @@ public sealed class ImapAccountClient : IImapAccountClient
         var summaries = await folder.FetchAsync(
             range,
             MessageSummaryItems.UniqueId | MessageSummaryItems.Envelope | MessageSummaryItems.Flags
-                | MessageSummaryItems.Size | MessageSummaryItems.BodyStructure | MessageSummaryItems.References,
+                | MessageSummaryItems.Size | MessageSummaryItems.BodyStructure | MessageSummaryItems.References
+                | MessageSummaryItems.InternalDate,
             ct);
 
         return summaries
@@ -209,7 +229,11 @@ public sealed class ImapAccountClient : IImapAccountClient
         CcRecipients = summary.Envelope?.Cc is { Count: > 0 } cc
             ? string.Join(';', cc.Mailboxes.Select(m => m.Address))
             : null,
-        Date = summary.Envelope?.Date ?? DateTimeOffset.UtcNow,
+        // IMAP INTERNALDATE reflects when the server actually received the message, which is
+        // what "sort by received time" means — the Envelope's Date: header is just whatever the
+        // sender's own client put there and can lag or be skewed (relays, bulk senders, clock
+        // drift), which showed up as adjacent messages appearing swapped when sorted by date.
+        Date = summary.InternalDate ?? summary.Envelope?.Date ?? DateTimeOffset.UtcNow,
         IsRead = summary.Flags?.HasFlag(MessageFlags.Seen) ?? false,
         IsFlagged = summary.Flags?.HasFlag(MessageFlags.Flagged) ?? false,
         IsAnswered = summary.Flags?.HasFlag(MessageFlags.Answered) ?? false,

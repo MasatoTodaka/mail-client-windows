@@ -13,7 +13,9 @@ public sealed class MessageRepository(MailDbContext db) : IMessageStore
         await using var connection = db.CreateConnection();
         await connection.OpenAsync(ct);
         await using var command = connection.CreateCommand();
-        command.CommandText = "SELECT * FROM messages WHERE folder_id = $folderId ORDER BY date DESC LIMIT $take OFFSET $skip;";
+        // uid as a tiebreaker keeps ordering deterministic when two messages share the same
+        // date down to the second (uid is server-assigned in arrival order within a folder).
+        command.CommandText = "SELECT * FROM messages WHERE folder_id = $folderId ORDER BY date DESC, uid DESC LIMIT $take OFFSET $skip;";
         command.Parameters.AddWithValue("$folderId", folderId.ToString());
         command.Parameters.AddWithValue("$take", take);
         command.Parameters.AddWithValue("$skip", skip);
@@ -219,6 +221,17 @@ public sealed class MessageRepository(MailDbContext db) : IMessageStore
         await using var command = connection.CreateCommand();
         command.CommandText = "DELETE FROM messages WHERE id = $id;";
         command.Parameters.AddWithValue("$id", id.ToString());
+        await command.ExecuteNonQueryAsync(ct);
+    }
+
+    public async Task UpdateDateAsync(Guid messageId, DateTimeOffset date, CancellationToken ct)
+    {
+        await using var connection = db.CreateConnection();
+        await connection.OpenAsync(ct);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "UPDATE messages SET date = $date WHERE id = $id;";
+        command.Parameters.AddWithValue("$date", date.ToString("o"));
+        command.Parameters.AddWithValue("$id", messageId.ToString());
         await command.ExecuteNonQueryAsync(ct);
     }
 
