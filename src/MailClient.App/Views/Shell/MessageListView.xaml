@@ -58,6 +58,14 @@
             SelectionMode="Single"
             SelectionChanged="OnMessageSelectionChanged"
             Visibility="{x:Bind FolderHeaderVisibility(SearchViewModel.IsSearchActive), Mode=OneWay}">
+            <ListView.Resources>
+                <SolidColorBrush x:Key="ListViewItemBackgroundSelected" Color="#0A84FF" />
+                <SolidColorBrush x:Key="ListViewItemBackgroundSelectedPointerOver" Color="#0A84FF" />
+                <SolidColorBrush x:Key="ListViewItemBackgroundSelectedPressed" Color="#0972DB" />
+                <SolidColorBrush x:Key="ListViewItemForegroundSelected" Color="White" />
+                <SolidColorBrush x:Key="ListViewItemForegroundSelectedPointerOver" Color="White" />
+                <SolidColorBrush x:Key="ListViewItemForegroundSelectedPressed" Color="White" />
+            </ListView.Resources>
             <ListView.Footer>
                 <Button
                     Content="もっと読み込む"
@@ -148,6 +156,14 @@
             SelectionMode="Single"
             SelectionChanged="OnSearchResultSelectionChanged"
             Visibility="{x:Bind SearchViewModel.IsSearchActive, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+            <ListView.Resources>
+                <SolidColorBrush x:Key="ListViewItemBackgroundSelected" Color="#0A84FF" />
+                <SolidColorBrush x:Key="ListViewItemBackgroundSelectedPointerOver" Color="#0A84FF" />
+                <SolidColorBrush x:Key="ListViewItemBackgroundSelectedPressed" Color="#0972DB" />
+                <SolidColorBrush x:Key="ListViewItemForegroundSelected" Color="White" />
+                <SolidColorBrush x:Key="ListViewItemForegroundSelectedPointerOver" Color="White" />
+                <SolidColorBrush x:Key="ListViewItemForegroundSelectedPressed" Color="White" />
+            </ListView.Resources>
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="abstractions:SearchResult">
                     <Grid Padding="16,8" ColumnSpacing="12" AutomationProperties.Name="{x:Bind Message.Subject}">

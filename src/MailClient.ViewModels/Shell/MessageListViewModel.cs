@@ -122,6 +122,13 @@ public sealed partial class MessageListViewModel : ViewModelBase
     // pull-to-refresh" motion users noticed after every read/flag/logo-driven refresh). Ending
     // up at the same final list via targeted Replace/Move/Insert/Remove keeps everything else
     // in the ListView undisturbed.
+    //
+    // Every call re-queries the store, so even an unchanged row arrives as a brand new MailMessage
+    // instance — replacing the collection slot unconditionally would still touch all ~200 rows on
+    // every refresh (each Replace nudges the ListView's item-reveal transition), reproducing the
+    // same jump this diff is meant to avoid. HasSameDisplayState skips the replace for rows whose
+    // bound fields didn't actually change, so only the row(s) that genuinely changed (e.g. the one
+    // just marked read) get touched.
     private void ApplyMessages(IReadOnlyList<MailMessage> messages)
     {
         var newIds = messages.Select(m => m.Id).ToHashSet();
@@ -136,9 +143,8 @@ public sealed partial class MessageListViewModel : ViewModelBase
             var message = messages[i];
             if (i < Messages.Count && Messages[i].Id == message.Id)
             {
-                // Same message already at this position — replace in place to pick up any
-                // changed fields (read/flag state, etc.) without disturbing the rest of the list.
-                Messages[i] = message;
+                if (!HasSameDisplayState(Messages[i], message))
+                    Messages[i] = message;
                 continue;
             }
 
@@ -158,6 +164,25 @@ public sealed partial class MessageListViewModel : ViewModelBase
                 Messages.Insert(i, message);
         }
     }
+
+    // Compares every field the message list or reading-pane opening flow can mutate. Bindings in
+    // MessageListView's DataTemplate are OneTime (no INotifyPropertyChanged on MailMessage), so a
+    // real change still requires swapping the object reference — this just avoids doing that for
+    // rows where nothing actually changed.
+    private static bool HasSameDisplayState(MailMessage a, MailMessage b) =>
+        a.Uid == b.Uid &&
+        a.FolderId == b.FolderId &&
+        a.Subject == b.Subject &&
+        a.FromDisplay == b.FromDisplay &&
+        a.FromAddress == b.FromAddress &&
+        a.Date == b.Date &&
+        a.Snippet == b.Snippet &&
+        a.IsRead == b.IsRead &&
+        a.IsFlagged == b.IsFlagged &&
+        a.IsAnswered == b.IsAnswered &&
+        a.IsDraft == b.IsDraft &&
+        a.HasAttachments == b.HasAttachments &&
+        a.IsBodyDownloaded == b.IsBodyDownloaded;
 
     // Fire-and-forget: makes sure every unique sender domain on the page has its logo cached
     // (a no-op per domain once already cached), then re-applies the page once so any logos that
