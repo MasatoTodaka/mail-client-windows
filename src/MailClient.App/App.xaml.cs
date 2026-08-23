@@ -1,5 +1,7 @@
+using System.Diagnostics;
 using CommunityToolkit.Mvvm.Input;
 using H.NotifyIcon;
+using MailClient.Core;
 using MailClient.Core.Abstractions;
 using MailClient.Core.Text;
 using MailClient.Data;
@@ -273,14 +275,26 @@ public partial class App : Application
 
     private void ExitApp()
     {
-        // Environment.Exit(0) unconditionally kills the process, so it's called first and nothing
-        // else needs to succeed for the app to actually quit. It was previously called last, after
-        // _trayIcon.Dispose()/_mainWindow.Close()/Exit() -- if any of those hung or threw (plausible:
-        // the IMAP IDLE watcher's Task.Run keeps a socket read blocked on a ThreadPool thread, and
-        // Application.Exit() alone doesn't stop that), the process never reached this line at all,
-        // which is exactly what "終了 does nothing, the tray icon and task are still there" looks
-        // like. Nothing past this line ever runs.
-        Environment.Exit(0);
+        // Diagnostic only: Environment.Exit(0) placed first (with nothing else required to
+        // succeed first) still didn't kill the process per user report, which is only explicable
+        // by either (a) this method never actually running, or (b) Environment.Exit(0)'s orderly
+        // shutdown (ProcessExit handlers, finalizers) itself hanging. This marker file answers (a)
+        // without needing the user to check anything -- if it's missing after another failed
+        // report, the click isn't reaching this method at all.
+        try
+        {
+            var appDataPaths = Services.GetRequiredService<AppDataPaths>();
+            File.WriteAllText(Path.Combine(appDataPaths.RootDirectory, "exit-clicked.txt"), DateTimeOffset.Now.ToString("o"));
+        }
+        catch
+        {
+            // Best-effort diagnostic; must not block the actual exit below.
+        }
+
+        // Process.Kill() is a hard OS-level TerminateProcess call (the same thing Task Manager's
+        // "End Task" does) -- unlike Environment.Exit(0), it doesn't run ProcessExit handlers or
+        // finalizers first, so nothing managed can hang or delay it.
+        Process.GetCurrentProcess().Kill();
     }
 
     private static string StripHtmlTags(string html) =>
