@@ -200,6 +200,14 @@ public sealed partial class MessageListViewModel : ViewModelBase
     // Plain-value snapshot of the message list's DataTemplate-bound fields that are still
     // effectively OneTime (i.e. everything except IsRead/IsFlagged, which are live-notified —
     // see ApplyMessages above), used solely to detect real changes between ApplyMessages passes.
+    //
+    // Deliberately excludes IsBodyDownloaded/BodyTextPath/BodyHtmlPath: nothing in the row
+    // DataTemplate displays them, but ReadingPaneViewModel.FetchAndCacheBodyAsync flips
+    // IsBodyDownloaded to true in place on this exact shared instance as soon as a message is
+    // opened for the first time (before MarkAsReadAsync even runs) — comparing it here made
+    // opening any not-yet-downloaded message look like a "real" change and force a full row
+    // replace, which lost the selection highlight and reset the sender logo to its fallback
+    // (this is what broke "既読にする際に選択の青色を保つ" after the previous fix).
     private readonly record struct DisplayState(
         uint Uid,
         Guid FolderId,
@@ -210,12 +218,11 @@ public sealed partial class MessageListViewModel : ViewModelBase
         string Snippet,
         bool IsAnswered,
         bool IsDraft,
-        bool HasAttachments,
-        bool IsBodyDownloaded)
+        bool HasAttachments)
     {
         public static DisplayState From(MailMessage m) => new(
             m.Uid, m.FolderId, m.Subject, m.FromDisplay, m.FromAddress, m.Date, m.Snippet,
-            m.IsAnswered, m.IsDraft, m.HasAttachments, m.IsBodyDownloaded);
+            m.IsAnswered, m.IsDraft, m.HasAttachments);
     }
 
     // Fire-and-forget: makes sure every unique sender domain on the page has its logo cached
