@@ -27,8 +27,32 @@ public sealed class MailSyncService(
         var inbox = folders.FirstOrDefault(f => f.SpecialUse == MailFolderSpecialUse.Inbox)
             ?? folders.FirstOrDefault(f => string.Equals(f.ImapFullName, "INBOX", StringComparison.OrdinalIgnoreCase));
 
-        if (inbox is not null)
-            await SyncFolderAsync(inbox.Id, SyncDepth.RecentOnly, ct);
+        if (inbox is null)
+            return;
+
+        await SyncFolderAsync(inbox.Id, SyncDepth.RecentOnly, ct);
+
+        // New accounts start with only the most recent ~50 INBOX messages locally, so page all
+        // the way back through history up front rather than making the user click "もっと読み込む"
+        // repeatedly. Runs fire-and-forget from the caller, so it doesn't block the UI. On an
+        // account that's already fully synced (every subsequent app launch), the first
+        // GetMinUidAsync check is already at the true floor and this is a no-op.
+        uint? previousMinUid = null;
+        while (!ct.IsCancellationRequested)
+        {
+            var minUid = await messageStore.GetMinUidAsync(inbox.Id, ct);
+            if (minUid is null or <= 1)
+                break;
+
+            // Guards against a stuck loop if the low end of the UID range is a gap left by
+            // server-side deletions (ExtendBackward would otherwise keep re-fetching the same
+            // empty range forever without minUid ever moving).
+            if (minUid == previousMinUid)
+                break;
+            previousMinUid = minUid;
+
+            await SyncFolderAsync(inbox.Id, SyncDepth.ExtendBackward, ct);
+        }
     }
 
     public async Task SyncFolderAsync(Guid folderId, SyncDepth depth, CancellationToken ct)
