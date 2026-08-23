@@ -280,6 +280,12 @@ public partial class App : Application
         _trayIcon?.Dispose();
         _mainWindow?.Close();
         Exit();
+
+        // Application.Exit() only asks the dispatcher queue to wind down once every window is
+        // closed — it doesn't stop background threads that aren't tied to it (the IMAP IDLE watch
+        // loop's Task.Run keeps a socket read blocked on a ThreadPool thread), so the process can
+        // linger after the tray icon and window have already disappeared. Force it.
+        Environment.Exit(0);
     }
 
     private static string StripHtmlTags(string html) =>
