@@ -250,11 +250,14 @@ public partial class App : Application
             LeftClickCommand = new RelayCommand(ShowMainWindow),
         };
 
-        var openItem = new MenuFlyoutItem { Text = "開く" };
-        openItem.Click += (_, _) => ShowMainWindow();
-
-        var exitItem = new MenuFlyoutItem { Text = "終了" };
-        exitItem.Click += (_, _) => ExitApp();
+        // Command, not the Click event: H.NotifyIcon's default ContextMenuMode (PopupMenu) shows
+        // the flyout's items as a native Win32 popup, not a real WinUI-rendered MenuFlyout -- the
+        // items apparently never go through WinUI's normal input pipeline that raises Click, which
+        // is why "終了" never fired despite the menu itself opening and closing normally.
+        // LeftClickCommand (already Command-based) has worked all along, so switching both items to
+        // Command instead of Click matches the API shape that's actually confirmed to work here.
+        var openItem = new MenuFlyoutItem { Text = "開く", Command = new RelayCommand(ShowMainWindow) };
+        var exitItem = new MenuFlyoutItem { Text = "終了", Command = new RelayCommand(ExitApp) };
 
         var menu = new MenuFlyout();
         menu.Items.Add(openItem);
