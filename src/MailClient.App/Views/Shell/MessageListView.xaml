@@ -72,7 +72,8 @@
                     Content="もっと読み込む"
                     Margin="16,8"
                     HorizontalAlignment="Stretch"
-                    Command="{x:Bind ViewModel.LoadMoreCommand}" />
+                    Command="{x:Bind ViewModel.LoadMoreCommand}"
+                    Visibility="{x:Bind ViewModel.CanLoadMore, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
             </ListView.Footer>
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="model:MailMessage">

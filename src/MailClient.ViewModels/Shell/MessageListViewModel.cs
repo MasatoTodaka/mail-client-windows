@@ -53,6 +53,11 @@ public sealed partial class MessageListViewModel : ViewModelBase
     [ObservableProperty]
     private string? _folderDisplayName;
 
+    // Drives the "もっと読み込む" button's Visibility. True until proven otherwise, so the button
+    // doesn't flash away and back while the very first check is still in flight.
+    [ObservableProperty]
+    private bool _canLoadMore = true;
+
     public event EventHandler<MailMessage>? MessageSelected;
 
     [RelayCommand]
@@ -74,6 +79,7 @@ public sealed partial class MessageListViewModel : ViewModelBase
             var messages = await LoadPageAsync(folder);
             ApplyMessages(messages);
             _ = PrefetchLogosAsync(messages);
+            await UpdateCanLoadMoreAsync(folder);
         }
         catch (Exception ex)
         {
@@ -121,6 +127,24 @@ public sealed partial class MessageListViewModel : ViewModelBase
         var messages = await LoadPageAsync(_currentFolder);
         ApplyMessages(messages);
         _ = PrefetchLogosAsync(messages);
+        await UpdateCanLoadMoreAsync(_currentFolder);
+    }
+
+    // "もっと読み込む" pages further into IMAP history (SyncDepth.ExtendBackward), which only ever
+    // makes sense for a real folder that hasn't already been synced back to its oldest message —
+    // virtual folders (フラグ付き/今日) already show every locally-known match in one page, and
+    // GetMinUidAsync returning null (no messages) or 1 (the lowest possible UID) means a real
+    // folder's history has been fully paged through.
+    private async Task UpdateCanLoadMoreAsync(MailFolder folder)
+    {
+        if (IsVirtualFolder(folder))
+        {
+            CanLoadMore = false;
+            return;
+        }
+
+        var minUid = await _messageStore.GetMinUidAsync(folder.Id, CancellationToken.None);
+        CanLoadMore = minUid is not null && minUid > 1;
     }
 
     // In-place diff/reconcile rather than Clear()+Add() — the ListView visually collapses to
