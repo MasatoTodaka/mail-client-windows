@@ -3,6 +3,7 @@ using MailClient.Core.Models;
 using MailClient.Core.Text;
 using MailKit;
 using MailKit.Net.Imap;
+using MailKit.Search;
 using MailKit.Security;
 using MimeKit;
 using MailFolder = MailClient.Core.Models.MailFolder;
@@ -115,16 +116,36 @@ public sealed class ImapAccountClient : IImapAccountClient
         if (!folder.IsOpen)
             await folder.OpenAsync(FolderAccess.ReadOnly, ct);
 
-        var range = toUid.HasValue
-            ? new UniqueIdRange(new UniqueId(fromUid), new UniqueId(toUid.Value))
-            : new UniqueIdRange(new UniqueId(fromUid), UniqueId.MaxValue);
-
-        var summaries = await folder.FetchAsync(
-            range,
+        const MessageSummaryItems items =
             MessageSummaryItems.UniqueId | MessageSummaryItems.Envelope | MessageSummaryItems.Flags
                 | MessageSummaryItems.Size | MessageSummaryItems.BodyStructure | MessageSummaryItems.References
-                | MessageSummaryItems.InternalDate,
-            ct);
+                | MessageSummaryItems.InternalDate;
+
+        // Only the newest maxCount messages in the range are wanted, so pick those out *before*
+        // the expensive ENVELOPE/BODYSTRUCTURE fetch. Fetching the whole range and trimming
+        // afterwards meant every new-mail sync downloaded headers for the entire mailbox.
+        IList<IMessageSummary> summaries;
+        if (fromUid <= 1 && !toUid.HasValue)
+        {
+            // "Newest N" — sequence numbers ascend with UID, so the last N sequence numbers are
+            // the newest N messages. No UID round-trip needed.
+            if (folder.Count == 0)
+                return [];
+            summaries = await folder.FetchAsync(Math.Max(0, folder.Count - maxCount), -1, items, ct);
+        }
+        else
+        {
+            var range = toUid.HasValue
+                ? new UniqueIdRange(new UniqueId(fromUid), new UniqueId(toUid.Value))
+                : new UniqueIdRange(new UniqueId(fromUid), UniqueId.MaxValue);
+
+            // UID SEARCH returns just the UID list (cheap) — then fetch headers for the newest N only.
+            var uidsInRange = await folder.SearchAsync(SearchQuery.Uids(range), ct);
+            var newest = uidsInRange.OrderByDescending(u => u.Id).Take(maxCount).ToList();
+            if (newest.Count == 0)
+                return [];
+            summaries = await folder.FetchAsync(newest, items, ct);
+        }
 
         return summaries
             .OrderByDescending(s => s.UniqueId.Id)

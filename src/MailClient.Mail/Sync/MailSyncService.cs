@@ -297,18 +297,32 @@ public sealed class MailSyncService(
         if (inbox?.ImapFullName is null)
             return;
 
+        // A burst of arrivals (or EXISTS + EXPUNGE from a server-side rule) raises FolderChanged
+        // several times in quick succession. Rather than opening a separate IMAP connection and
+        // syncing once per event, run at most one sync at a time and fold every request that
+        // comes in meanwhile into a single follow-up sync.
+        var pendingRequests = 0;
         var watcher = new ImapIdleWatcher();
         watcher.FolderChanged += async (_, _) =>
         {
-            try
+            if (Interlocked.Increment(ref pendingRequests) != 1)
+                return; // a sync is already running and will re-run to pick this up
+
+            int handled;
+            do
             {
-                await SyncFolderAsync(inbox.Id, SyncDepth.RecentOnly, CancellationToken.None);
+                handled = Volatile.Read(ref pendingRequests);
+                try
+                {
+                    await SyncFolderAsync(inbox.Id, SyncDepth.RecentOnly, CancellationToken.None);
+                }
+                catch
+                {
+                    // SyncFolderAsync already reports this via SyncProgressChanged; the watcher loop
+                    // itself must keep running regardless.
+                }
             }
-            catch
-            {
-                // SyncFolderAsync already reports this via SyncProgressChanged; the watcher loop
-                // itself must keep running regardless.
-            }
+            while (Interlocked.Add(ref pendingRequests, -handled) != 0);
         };
 
         if (!_watchers.TryAdd(accountId, watcher))
