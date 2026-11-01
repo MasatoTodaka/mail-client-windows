@@ -12,10 +12,18 @@
         <MicaBackdrop />
     </Window.SystemBackdrop>
 
-    <ScrollViewer Padding="16">
+    <ContentControl HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" IsTabStop="False" Background="{ThemeResource AppBackgroundBrush}" Foreground="{ThemeResource TextPrimaryBrush}" FontFamily="{StaticResource AppFontFamily}">
+    <ScrollViewer Padding="24">
         <StackPanel Spacing="8" MinWidth="420">
 
-            <TextBlock Text="通知" Style="{ThemeResource SubtitleTextBlockStyle}" />
+            <TextBlock Text="外観" Style="{ThemeResource SubtitleTextBlockStyle}" />
+            <RadioButtons Header="テーマ" SelectedIndex="{x:Bind ViewModel.ThemeIndex, Mode=TwoWay}" AutomationProperties.Name="テーマ">
+                <x:String>システムの設定に合わせる</x:String>
+                <x:String>ライト</x:String>
+                <x:String>ダーク</x:String>
+            </RadioButtons>
+
+            <TextBlock Text="通知" Style="{ThemeResource SubtitleTextBlockStyle}" Margin="0,16,0,0" />
             <ToggleSwitch Header="新着メールをデスクトップ通知で知らせる" IsOn="{x:Bind ViewModel.NotificationsEnabled, Mode=TwoWay}" />
             <ToggleSwitch Header="ワンタイムパスワードを自動でクリップボードにコピーする" IsOn="{x:Bind ViewModel.OtpAutoCopyEnabled, Mode=TwoWay}" />
 
@@ -23,7 +31,7 @@
             <ToggleSwitch Header="差出人のアイコンに企業ロゴを表示する" IsOn="{x:Bind ViewModel.ShowSenderLogosEnabled, Mode=TwoWay}" />
             <TextBlock
                 Text="送信者のメールアドレスのドメインを外部サービス（Google）へ問い合わせてロゴを取得します。取得できない場合は今まで通り色付きイニシャルを表示します。"
-                Opacity="0.7"
+                Foreground="{ThemeResource TextSecondaryBrush}"
                 TextWrapping="Wrap"
                 FontSize="12" />
 
@@ -44,7 +52,7 @@
                             </Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0">
                                 <TextBlock Text="{x:Bind DisplayName}" FontWeight="SemiBold" />
-                                <TextBlock Text="{x:Bind EmailAddress}" Opacity="0.7" />
+                                <TextBlock Text="{x:Bind EmailAddress}" Foreground="{ThemeResource TextSecondaryBrush}" />
                             </StackPanel>
                             <Button
                                 Grid.Column="1"
@@ -60,9 +68,10 @@
             </ItemsControl>
 
             <TextBlock Text="仕分けルール" Style="{ThemeResource SubtitleTextBlockStyle}" Margin="0,16,0,0" />
-            <TextBlock Text="送信者や件名の条件でメールを自動的にフォルダへ振り分けます。" Opacity="0.7" TextWrapping="Wrap" />
+            <TextBlock Text="送信者や件名の条件でメールを自動的にフォルダへ振り分けます。" Foreground="{ThemeResource TextSecondaryBrush}" TextWrapping="Wrap" />
             <Button Content="仕分けルールを管理..." Click="OnManageRulesClick" HorizontalAlignment="Left" />
 
         </StackPanel>
     </ScrollViewer>
+    </ContentControl>
 </Window>

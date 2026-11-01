@@ -12,13 +12,19 @@ public sealed partial class SettingsViewModel(
     IAccountStore accountStore,
     ICredentialStore credentialStore,
     IMailSyncService mailSyncService,
-    ISettingsStore settingsStore) : ViewModelBase
+    ISettingsStore settingsStore,
+    IThemeService themeService) : ViewModelBase
 {
+    private bool _isLoadingThemeIndex;
     private bool _isLoadingNotificationsEnabled;
     private bool _isLoadingOtpAutoCopyEnabled;
     private bool _isLoadingShowSenderLogosEnabled;
 
     public ObservableCollection<Account> Accounts { get; } = [];
+
+    // Position in the theme picker: 0 = follow system, 1 = light, 2 = dark (the ThemeMode order).
+    [ObservableProperty]
+    private int _themeIndex;
 
     [ObservableProperty]
     private bool _notificationsEnabled = true;
@@ -45,6 +51,10 @@ public sealed partial class SettingsViewModel(
         foreach (var account in accounts)
             Accounts.Add(account);
 
+        _isLoadingThemeIndex = true;
+        ThemeIndex = (int)themeService.Mode;
+        _isLoadingThemeIndex = false;
+
         _isLoadingNotificationsEnabled = true;
         NotificationsEnabled = await settingsStore.GetNotificationsEnabledAsync(CancellationToken.None);
         _isLoadingNotificationsEnabled = false;
@@ -66,6 +76,15 @@ public sealed partial class SettingsViewModel(
         credentialStore.Remove(account.Id);
         Accounts.Remove(account);
         AccountDeleted?.Invoke(this, account.Id);
+    }
+
+    partial void OnThemeIndexChanged(int value)
+    {
+        // RadioButtons reports -1 while its selection is being rebuilt.
+        if (_isLoadingThemeIndex || value is < 0 or > 2)
+            return;
+
+        _ = themeService.SetModeAsync((ThemeMode)value, CancellationToken.None);
     }
 
     partial void OnNotificationsEnabledChanged(bool value)

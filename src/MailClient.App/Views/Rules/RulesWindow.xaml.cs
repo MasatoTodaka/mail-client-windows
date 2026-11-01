@@ -1,4 +1,5 @@
 using MailClient.ViewModels.Rules;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
@@ -12,6 +13,7 @@ public sealed partial class RulesWindow : Window
     {
         ViewModel = viewModel;
         InitializeComponent();
+        App.Services.GetRequiredService<ThemeService>().Register(this);
 
         SystemBackdrop = new Microsoft.UI.Xaml.Media.MicaBackdrop();
 

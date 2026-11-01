@@ -82,7 +82,8 @@ public sealed partial class ReadingPaneView : UserControl
 
     private async Task<WebView2> CreateWebViewAsync()
     {
-        var webView = new WebView2();
+        // White, not transparent: mail HTML assumes a white page (see BodyWebViewHost in the XAML).
+        var webView = new WebView2 { DefaultBackgroundColor = Colors.White };
         BodyWebViewHost.Children.Add(webView);
         try
         {
@@ -239,6 +240,9 @@ public sealed partial class ReadingPaneView : UserControl
             // Diagnostics only.
         }
     }
+
+    private Visibility NoSelectionVisibility(object? selectedMessage) =>
+        selectedMessage is null ? Visibility.Visible : Visibility.Collapsed;
 
     private Visibility IsPlainTextVisible(bool isHtml) => isHtml ? Visibility.Collapsed : Visibility.Visible;
 

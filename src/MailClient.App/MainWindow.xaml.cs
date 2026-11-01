@@ -21,7 +21,10 @@ public sealed partial class MainWindow : Window
 
         InitializeComponent();
 
-        SystemBackdrop = new MicaBackdrop();
+        // The warm palette is opaque, so no Mica; the custom title bar blends into the background.
+        ExtendsContentIntoTitleBar = true;
+        SetTitleBar(AppTitleBar);
+        App.Services.GetRequiredService<ThemeService>().Register(this);
 
         // Packaged MSIX tile assets don't reliably drive a running window's own taskbar/title
         // bar icon (that comes from the window's own icon resource), so set it explicitly.

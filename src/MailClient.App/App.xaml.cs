@@ -36,6 +36,8 @@ public partial class App : Application
                 services.AddSingleton<ICredentialStore, CredentialLockerStore>();
                 services.AddSingleton<INotificationService, AppNotificationService>();
                 services.AddSingleton<IClipboardService, ClipboardService>();
+                services.AddSingleton<ThemeService>();
+                services.AddSingleton<IThemeService>(sp => sp.GetRequiredService<ThemeService>());
 
                 // Captured lazily: first resolution happens during MainWindow's construction in
                 // OnLaunched, which runs on the UI thread, so GetForCurrentThread() returns the
@@ -51,6 +53,10 @@ public partial class App : Application
     protected override async void OnLaunched(LaunchActivatedEventArgs args)
     {
         await Services.GetRequiredService<MailDbContext>().MigrateAsync();
+
+        // Loaded before the window exists so it opens in the right theme instead of flashing the
+        // wrong one first.
+        await Services.GetRequiredService<ThemeService>().InitializeAsync();
 
         _mainWindow = new MainWindow();
         _mainWindow.Activate();

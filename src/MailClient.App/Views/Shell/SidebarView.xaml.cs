@@ -49,6 +49,9 @@ public sealed partial class SidebarView : UserControl
         settingsWindow.Activate();
     }
 
+    private async void OnThemeToggleClick(object sender, RoutedEventArgs e) =>
+        await App.Services.GetRequiredService<ThemeService>().ToggleAsync();
+
     private Visibility EmptyStateVisibility(int accountCount) =>
         accountCount == 0 ? Visibility.Visible : Visibility.Collapsed;
 

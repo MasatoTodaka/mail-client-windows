@@ -12,8 +12,8 @@ namespace MailClient.App.Views;
 // slot's pixel size, so it's downscaled once with a proper filter rather than left to the brush.
 public static class SenderLogoRender
 {
-    public const double ListAvatarDip = 40;
-    public const double ReadingPaneAvatarDip = 36;
+    public const double ListAvatarDip = 44;
+    public const double ReadingPaneAvatarDip = 48;
 
     // Share of the slot's physical pixels an image must cover to be shown: at 0.75 the worst case
     // is a ~1.3x upscale, which is still visually clean. Below that the logo is hidden.

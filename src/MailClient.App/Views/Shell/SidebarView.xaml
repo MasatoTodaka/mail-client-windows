@@ -13,6 +13,14 @@
         <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
         <converters:IntToVisibilityConverter x:Key="IntToVisibilityConverter" />
         <converters:SpecialUseToGlyphConverter x:Key="SpecialUseToGlyphConverter" />
+
+        <!-- Folder rows: rounded, a little taller than the default; the soft selection fill comes from App.xaml. -->
+        <Style x:Key="FolderItemStyle" TargetType="ListViewItem" BasedOn="{StaticResource DefaultListViewItemStyle}">
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="MinHeight" Value="38" />
+            <Setter Property="Margin" Value="0,1" />
+            <Setter Property="Padding" Value="12,0" />
+        </Style>
     </UserControl.Resources>
 
     <Grid>
@@ -29,7 +37,7 @@
             Margin="8,16,8,0"
             Visibility="{x:Bind EmptyStateVisibility(ViewModel.Accounts.Count), Mode=OneWay}">
             <TextBlock Text="アカウントが登録されていません" Style="{ThemeResource BodyStrongTextBlockStyle}" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" />
-            <TextBlock Text="「設定」からメールアカウントを追加してください。" Opacity="0.7" TextWrapping="Wrap" TextAlignment="Center" />
+            <TextBlock Text="「設定」からメールアカウントを追加してください。" Foreground="{ThemeResource TextSecondaryBrush}" TextWrapping="Wrap" TextAlignment="Center" />
             <Button Content="設定を開く" Click="OnSettingsClick" HorizontalAlignment="Center" Margin="0,4,0,0" />
         </StackPanel>
 
@@ -40,22 +48,34 @@
             <ItemsControl ItemsSource="{x:Bind ViewModel.Accounts}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="shell:AccountNode">
-                        <StackPanel Margin="0,0,0,16">
-                            <Grid ColumnSpacing="6" AutomationProperties.Name="{x:Bind DisplayName}">
+                        <StackPanel Margin="0,0,0,20">
+                            <Grid ColumnSpacing="8" Margin="12,0,8,6" AutomationProperties.Name="{x:Bind DisplayName}">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Text="{x:Bind DisplayName}" Style="{ThemeResource BodyStrongTextBlockStyle}" />
+                                <TextBlock
+                                    Grid.Column="0"
+                                    Text="{x:Bind DisplayName}"
+                                    FontSize="12"
+                                    FontWeight="SemiBold"
+                                    Foreground="{ThemeResource TextSecondaryBrush}"
+                                    VerticalAlignment="Center" />
                                 <Border
                                     Grid.Column="1"
-                                    Background="{ThemeResource AccentFillColorDefaultBrush}"
+                                    Background="{ThemeResource BadgeBrush}"
                                     CornerRadius="8"
-                                    Padding="6,1"
+                                    MinWidth="16"
+                                    Padding="5,0"
                                     VerticalAlignment="Center"
                                     Visibility="{x:Bind UnreadTotal, Mode=OneWay, Converter={StaticResource IntToVisibilityConverter}}">
-                                    <TextBlock Text="{x:Bind UnreadTotal, Mode=OneWay}" FontSize="11" Foreground="White" />
+                                    <TextBlock
+                                        Text="{x:Bind UnreadTotal, Mode=OneWay}"
+                                        FontSize="11"
+                                        FontWeight="Bold"
+                                        Foreground="{ThemeResource OnBadgeBrush}"
+                                        HorizontalAlignment="Center" />
                                 </Border>
                                 <ProgressRing Grid.Column="2" HorizontalAlignment="Left" IsActive="{x:Bind IsConnecting, Mode=OneWay}" Width="14" Height="14" />
                             </Grid>
@@ -64,10 +84,10 @@
                                 Text="{x:Bind ErrorMessage, Mode=OneWay}"
                                 Foreground="{ThemeResource SystemFillColorCriticalBrush}"
                                 TextWrapping="Wrap"
-                                Margin="0,4,0,0"
+                                Margin="12,4,8,0"
                                 Visibility="{x:Bind ErrorMessage, Mode=OneWay, Converter={StaticResource StringToVisibilityConverter}}" />
                             <Button
-                                Margin="0,4,0,0"
+                                Margin="12,4,0,0"
                                 Click="OnRetryClick"
                                 Tag="{x:Bind}"
                                 AutomationProperties.Name="再試行"
@@ -80,7 +100,7 @@
 
                             <ListView
                                 ItemsSource="{x:Bind Folders}"
-                                Margin="12,4,0,0"
+                                ItemContainerStyle="{StaticResource FolderItemStyle}"
                                 SelectionMode="Single"
                                 SelectionChanged="OnFolderSelectionChanged"
                                 CanReorderItems="True"
@@ -89,7 +109,7 @@
                                 DragItemsCompleted="OnFolderDragItemsCompleted">
                                 <ListView.ItemTemplate>
                                     <DataTemplate x:DataType="model:MailFolder">
-                                        <Grid ColumnSpacing="8" AutomationProperties.Name="{x:Bind DisplayName}">
+                                        <Grid ColumnSpacing="12" AutomationProperties.Name="{x:Bind DisplayName}">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto" />
                                                 <ColumnDefinition Width="*" />
@@ -98,14 +118,15 @@
                                             <FontIcon
                                                 Grid.Column="0"
                                                 Glyph="{x:Bind SpecialUse, Converter={StaticResource SpecialUseToGlyphConverter}}"
-                                                FontSize="14"
-                                                Opacity="0.7"
+                                                FontSize="16"
                                                 VerticalAlignment="Center" />
-                                            <TextBlock Grid.Column="1" Text="{x:Bind DisplayName}" Margin="0,2,0,2" />
+                                            <TextBlock Grid.Column="1" Text="{x:Bind DisplayName}" FontSize="14" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                             <TextBlock
                                                 Grid.Column="2"
                                                 Text="{x:Bind UnreadCount}"
-                                                Opacity="0.7"
+                                                FontSize="12"
+                                                FontWeight="SemiBold"
+                                                Foreground="{ThemeResource TextSecondaryBrush}"
                                                 VerticalAlignment="Center"
                                                 Visibility="{x:Bind UnreadCount, Converter={StaticResource IntToVisibilityConverter}}" />
                                         </Grid>
@@ -118,10 +139,13 @@
             </ItemsControl>
         </ScrollViewer>
 
-        <Grid Grid.Row="1" Margin="0,12,0,0" HorizontalAlignment="Left">
-            <Button Click="OnSettingsClick" ToolTipService.ToolTip="設定" AutomationProperties.Name="設定">
-                <FontIcon Glyph="&#xE713;" />
+        <StackPanel Grid.Row="1" Margin="4,12,0,4" Orientation="Horizontal" Spacing="4" HorizontalAlignment="Left">
+            <Button Style="{StaticResource GhostIconButtonStyle}" Click="OnSettingsClick" ToolTipService.ToolTip="設定" AutomationProperties.Name="設定">
+                <FontIcon Glyph="&#xE713;" FontSize="16" />
             </Button>
-        </Grid>
+            <Button Style="{StaticResource GhostIconButtonStyle}" Click="OnThemeToggleClick" ToolTipService.ToolTip="ライト / ダークを切り替え" AutomationProperties.Name="ライト / ダークを切り替え">
+                <FontIcon Glyph="&#xE706;" FontSize="16" />
+            </Button>
+        </StackPanel>
     </Grid>
 </UserControl>

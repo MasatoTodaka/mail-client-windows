@@ -58,3 +58,41 @@ public sealed class ConnectionSettingsTests : IAsyncLifetime
         return await command.ExecuteScalarAsync();
     }
 }
+
+// Theme choice persistence through the real settings table.
+public sealed class ThemeModePersistenceTests : IAsyncLifetime
+{
+    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"mailclient-test-{Guid.NewGuid():N}.db");
+    private MailDbContext _db = null!;
+
+    public async Task InitializeAsync()
+    {
+        _db = new MailDbContext(_dbPath);
+        await _db.MigrateAsync();
+    }
+
+    public Task DisposeAsync()
+    {
+        SqliteConnection.ClearAllPools();
+        foreach (var path in new[] { _dbPath, _dbPath + "-wal", _dbPath + "-shm" })
+        {
+            if (File.Exists(path))
+                File.Delete(path);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    [Fact]
+    public async Task DefaultsToSystem_ThenPersistsEachChoice()
+    {
+        var store = new Repositories.SettingsRepository(_db);
+        Assert.Equal(Core.Models.ThemeMode.System, await store.GetThemeModeAsync(CancellationToken.None));
+
+        await store.SetThemeModeAsync(Core.Models.ThemeMode.Dark, CancellationToken.None);
+        Assert.Equal(Core.Models.ThemeMode.Dark, await store.GetThemeModeAsync(CancellationToken.None));
+
+        await store.SetThemeModeAsync(Core.Models.ThemeMode.Light, CancellationToken.None);
+        Assert.Equal(Core.Models.ThemeMode.Light, await store.GetThemeModeAsync(CancellationToken.None));
+    }
+}

@@ -200,6 +200,7 @@ public sealed partial class MessageListViewModel : ViewModelBase
                 var existing = Messages[i];
                 existing.IsRead = message.IsRead;
                 existing.IsFlagged = message.IsFlagged;
+                existing.Snippet = message.Snippet;
 
                 var newState = DisplayState.From(message);
                 var forceReplace = forceReplaceAddresses is not null && forceReplaceAddresses.Contains(message.FromAddress);
@@ -248,13 +249,12 @@ public sealed partial class MessageListViewModel : ViewModelBase
         string FromDisplay,
         string FromAddress,
         DateTimeOffset Date,
-        string Snippet,
         bool IsAnswered,
         bool IsDraft,
         bool HasAttachments)
     {
         public static DisplayState From(MailMessage m) => new(
-            m.Uid, m.FolderId, m.Subject, m.FromDisplay, m.FromAddress, m.Date, m.Snippet,
+            m.Uid, m.FolderId, m.Subject, m.FromDisplay, m.FromAddress, m.Date,
             m.IsAnswered, m.IsDraft, m.HasAttachments);
     }
 

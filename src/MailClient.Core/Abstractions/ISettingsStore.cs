@@ -1,3 +1,5 @@
+using MailClient.Core.Models;
+
 namespace MailClient.Core.Abstractions;
 
 // App-level (not per-account) user preferences. Backed by a generic key/value table so new
@@ -16,6 +18,10 @@ public interface ISettingsStore
     // of blocking remote content until the user opts in.
     Task<bool> GetShowSenderLogosEnabledAsync(CancellationToken ct);
     Task SetShowSenderLogosEnabledAsync(bool enabled, CancellationToken ct);
+
+    // Light/dark/follow-system choice; defaults to following the system.
+    Task<ThemeMode> GetThemeModeAsync(CancellationToken ct);
+    Task SetThemeModeAsync(ThemeMode mode, CancellationToken ct);
 
     // One-time-per-account guard for the received-date backfill (re-fetches IMAP INTERNALDATE
     // for already-cached messages so sort order matches actual arrival, not the sender's

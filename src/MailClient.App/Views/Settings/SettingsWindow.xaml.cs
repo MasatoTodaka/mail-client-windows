@@ -18,6 +18,7 @@ public sealed partial class SettingsWindow : Window
     {
         ViewModel = viewModel;
         InitializeComponent();
+        App.Services.GetRequiredService<ThemeService>().Register(this);
 
         SystemBackdrop = new Microsoft.UI.Xaml.Media.MicaBackdrop();
 

@@ -1,4 +1,5 @@
 using MailClient.Core.Abstractions;
+using MailClient.Core.Models;
 
 namespace MailClient.Data.Repositories;
 
@@ -40,6 +41,14 @@ public sealed class SettingsRepository(MailDbContext db) : ISettingsStore
 
     public Task SetReceivedDateBackfillCompleteAsync(Guid accountId, CancellationToken ct) =>
         SetAsync(ReceivedDateBackfillCompleteKey(accountId), "1", ct);
+
+    public async Task<ThemeMode> GetThemeModeAsync(CancellationToken ct) =>
+        ThemeModeExtensions.ParseThemeMode(await GetAsync(ThemeModeKey, ct));
+
+    public Task SetThemeModeAsync(ThemeMode mode, CancellationToken ct) =>
+        SetAsync(ThemeModeKey, mode.ToStorageValue(), ct);
+
+    private const string ThemeModeKey = "theme_mode";
 
     public async Task<bool> GetMojibakeBackfillCompleteAsync(CancellationToken ct) =>
         await GetAsync(MojibakeBackfillCompleteKey, ct) == "1";

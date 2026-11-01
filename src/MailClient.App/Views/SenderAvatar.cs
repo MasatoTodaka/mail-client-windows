@@ -10,12 +10,12 @@ public static class SenderAvatar
 {
     private static readonly Color[] Palette =
     [
-        Color.FromArgb(255, 0x5A, 0x8D, 0xEE), // blue
-        Color.FromArgb(255, 0x5A, 0xC8, 0xA8), // teal
-        Color.FromArgb(255, 0xE8, 0x8A, 0x4C), // orange
-        Color.FromArgb(255, 0xC0, 0x6C, 0xE0), // purple
-        Color.FromArgb(255, 0xE0, 0x6C, 0x8A), // pink
-        Color.FromArgb(255, 0x6B, 0xB8, 0x5E), // green
+        Color.FromArgb(255, 0x2E, 0x8B, 0x7A), // teal
+        Color.FromArgb(255, 0x7C, 0x5C, 0xD6), // violet
+        Color.FromArgb(255, 0x0F, 0x6C, 0xBD), // blue
+        Color.FromArgb(255, 0xC2, 0x41, 0x0C), // rust
+        Color.FromArgb(255, 0xB4, 0x45, 0x7A), // rose
+        Color.FromArgb(255, 0x4F, 0x7F, 0x3A), // moss
     ];
 
     public static string Initial(string? fromDisplay) =>

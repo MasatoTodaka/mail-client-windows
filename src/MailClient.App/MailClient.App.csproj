@@ -33,6 +33,8 @@
   <ItemGroup>
     <Content Include="Assets\**\*.png" />
     <Content Include="Assets\**\*.ico" />
+    <Content Include="Assets\Fonts\*.ttf" />
+    <Content Include="Assets\Fonts\OFL-*.txt" />
   </ItemGroup>
 
 </Project>

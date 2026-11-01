@@ -8,6 +8,102 @@
             <ResourceDictionary.MergedDictionaries>
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
             </ResourceDictionary.MergedDictionaries>
+
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="AppBackgroundBrush" Color="#F6F3EE" />
+                    <SolidColorBrush x:Key="SurfaceBrush" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="SurfaceStrokeBrush" Color="#E6E0D6" />
+                    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#24211C" />
+                    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#6B645A" />
+                    <SolidColorBrush x:Key="AccentBrush" Color="#2F7D5B" />
+                    <SolidColorBrush x:Key="OnAccentBrush" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="AccentSoftBrush" Color="#E8F3EC" />
+                    <SolidColorBrush x:Key="AccentSoftHoverBrush" Color="#DDEBE2" />
+                    <SolidColorBrush x:Key="OnAccentSoftBrush" Color="#1F5C42" />
+                    <SolidColorBrush x:Key="HoverBrush" Color="#0F000000" />
+                    <SolidColorBrush x:Key="InputBrush" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="BadgeBrush" Color="#C2410C" />
+                    <SolidColorBrush x:Key="OnBadgeBrush" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="FlagBrush" Color="#C2410C" />
+                    <StaticResource x:Key="ListViewItemBackgroundPointerOver" ResourceKey="HoverBrush" />
+                    <StaticResource x:Key="ListViewItemBackgroundPressed" ResourceKey="HoverBrush" />
+                    <StaticResource x:Key="ListViewItemBackgroundSelected" ResourceKey="AccentSoftBrush" />
+                    <StaticResource x:Key="ListViewItemBackgroundSelectedPointerOver" ResourceKey="AccentSoftHoverBrush" />
+                    <StaticResource x:Key="ListViewItemBackgroundSelectedPressed" ResourceKey="AccentSoftHoverBrush" />
+                    <StaticResource x:Key="ListViewItemForegroundSelected" ResourceKey="OnAccentSoftBrush" />
+                    <StaticResource x:Key="ListViewItemForegroundSelectedPointerOver" ResourceKey="OnAccentSoftBrush" />
+                    <StaticResource x:Key="ListViewItemForegroundSelectedPressed" ResourceKey="OnAccentSoftBrush" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Dark">
+                    <SolidColorBrush x:Key="AppBackgroundBrush" Color="#151412" />
+                    <SolidColorBrush x:Key="SurfaceBrush" Color="#1E1C19" />
+                    <SolidColorBrush x:Key="SurfaceStrokeBrush" Color="#302D28" />
+                    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#ECE8E1" />
+                    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#A39B8E" />
+                    <SolidColorBrush x:Key="AccentBrush" Color="#5DBB8A" />
+                    <SolidColorBrush x:Key="OnAccentBrush" Color="#0F2A1D" />
+                    <SolidColorBrush x:Key="AccentSoftBrush" Color="#22362B" />
+                    <SolidColorBrush x:Key="AccentSoftHoverBrush" Color="#2A4235" />
+                    <SolidColorBrush x:Key="OnAccentSoftBrush" Color="#A8E0C3" />
+                    <SolidColorBrush x:Key="HoverBrush" Color="#14FFFFFF" />
+                    <SolidColorBrush x:Key="InputBrush" Color="#26231F" />
+                    <SolidColorBrush x:Key="BadgeBrush" Color="#F08A5D" />
+                    <SolidColorBrush x:Key="OnBadgeBrush" Color="#2A1208" />
+                    <SolidColorBrush x:Key="FlagBrush" Color="#F08A5D" />
+                    <StaticResource x:Key="ListViewItemBackgroundPointerOver" ResourceKey="HoverBrush" />
+                    <StaticResource x:Key="ListViewItemBackgroundPressed" ResourceKey="HoverBrush" />
+                    <StaticResource x:Key="ListViewItemBackgroundSelected" ResourceKey="AccentSoftBrush" />
+                    <StaticResource x:Key="ListViewItemBackgroundSelectedPointerOver" ResourceKey="AccentSoftHoverBrush" />
+                    <StaticResource x:Key="ListViewItemBackgroundSelectedPressed" ResourceKey="AccentSoftHoverBrush" />
+                    <StaticResource x:Key="ListViewItemForegroundSelected" ResourceKey="OnAccentSoftBrush" />
+                    <StaticResource x:Key="ListViewItemForegroundSelectedPointerOver" ResourceKey="OnAccentSoftBrush" />
+                    <StaticResource x:Key="ListViewItemForegroundSelectedPressed" ResourceKey="OnAccentSoftBrush" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+
+            <!--
+                Typography: Inter for Latin text (the closest freely-bundlable match to macOS's San
+                Francisco) with Noto Sans JP behind it for Japanese (the closest to Hiragino Sans).
+                Both are bundled under Assets/Fonts (SIL OFL). The font list is per-glyph fallback:
+                Inter has no Japanese glyphs, so those characters come from Noto Sans JP.
+            -->
+            <FontFamily x:Key="AppFontFamily">ms-appx:///Assets/Fonts/Inter.ttf#Inter, ms-appx:///Assets/Fonts/NotoSansJP.ttf#Noto Sans JP, Segoe UI Variable, Yu Gothic UI</FontFamily>
+            <FontFamily x:Key="ContentControlThemeFontFamily">ms-appx:///Assets/Fonts/Inter.ttf#Inter, ms-appx:///Assets/Fonts/NotoSansJP.ttf#Noto Sans JP, Segoe UI Variable, Yu Gothic UI</FontFamily>
+
+            <!-- The default list selection draws a thin accent bar; the soft filled highlight replaces it. -->
+            <x:Boolean x:Key="ListViewItemSelectionIndicatorVisualEnabled">False</x:Boolean>
+
+            <!-- Rounded squircle-ish avatars/cards use these radii everywhere. -->
+            <CornerRadius x:Key="AvatarCornerRadius">13</CornerRadius>
+            <CornerRadius x:Key="CardCornerRadius">20</CornerRadius>
+
+            <!--
+                Palette ("Paper" design). Everything custom-colored goes through these so light and
+                dark stay in sync; switching RequestedTheme on a window swaps the whole set.
+            -->
+
+            <!-- Round, borderless toolbar button used for the reading pane actions. -->
+            <Style x:Key="GhostIconButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+                <Setter Property="Width" Value="36" />
+                <Setter Property="Height" Value="36" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="CornerRadius" Value="18" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Foreground" Value="{ThemeResource TextPrimaryBrush}" />
+            </Style>
+
+            <!-- Pill button with a leading icon and a label (primary reading pane action). -->
+            <Style x:Key="PillButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+                <Setter Property="Height" Value="36" />
+                <Setter Property="Padding" Value="14,0" />
+                <Setter Property="CornerRadius" Value="18" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Background" Value="{ThemeResource AccentSoftBrush}" />
+                <Setter Property="Foreground" Value="{ThemeResource OnAccentSoftBrush}" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+            </Style>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

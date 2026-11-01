@@ -67,6 +67,7 @@ public sealed partial class ReadingPaneViewModel(
                 : await FetchAndCacheBodyAsync(message);
 
             _rawHtml = htmlBody;
+            await EnsureSnippetAsync(message, textBody, htmlBody);
             if (htmlBody is not null)
             {
                 IsHtml = true;
@@ -195,6 +196,21 @@ public sealed partial class ReadingPaneViewModel(
         await messageStore.SaveAsync(message, CancellationToken.None);
 
         return (text, html);
+    }
+
+    // The list previews a message's first lines, but headers don't carry them: derive the preview
+    // from the body the first time it's available and keep it, so later list loads show it too.
+    private async Task EnsureSnippetAsync(MailMessage message, string? textBody, string? htmlBody)
+    {
+        if (!string.IsNullOrEmpty(message.Snippet))
+            return;
+
+        var snippet = SnippetBuilder.From(textBody, htmlBody);
+        if (snippet.Length == 0)
+            return;
+
+        message.Snippet = snippet;
+        await messageStore.SaveAsync(message, CancellationToken.None);
     }
 
     private Task MarkAsReadAsync(MailMessage message) => messageActions.SetReadAsync(message, true, CancellationToken.None);

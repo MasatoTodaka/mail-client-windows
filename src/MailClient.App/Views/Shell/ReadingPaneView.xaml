@@ -14,85 +14,113 @@
         <converters:DateTimeOffsetToShortStringConverter x:Key="DateTimeOffsetToShortStringConverter" />
     </UserControl.Resources>
 
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-        </Grid.RowDefinitions>
+    <!-- The whole reading pane is one large rounded card on the app background. -->
+    <Border
+        Background="{ThemeResource SurfaceBrush}"
+        BorderBrush="{ThemeResource SurfaceStrokeBrush}"
+        BorderThickness="1"
+        CornerRadius="{StaticResource CardCornerRadius}">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
 
-        <Border
-            Grid.Row="0"
-            BorderThickness="0,0,0,1"
-            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-            Padding="16,12,16,12"
-            Visibility="{x:Bind ViewModel.SelectedMessage, Mode=OneWay, Converter={StaticResource ObjectToVisibilityConverter}}">
-            <StackPanel Spacing="10">
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <Button Click="OnReplyClick" ToolTipService.ToolTip="返信" AutomationProperties.Name="返信">
-                        <FontIcon Glyph="&#xE165;" />
-                    </Button>
-                    <Button Click="OnReplyAllClick" ToolTipService.ToolTip="全員に返信" AutomationProperties.Name="全員に返信">
-                        <FontIcon Glyph="&#xE716;" />
-                    </Button>
-                    <Button Click="OnForwardClick" ToolTipService.ToolTip="転送" AutomationProperties.Name="転送">
-                        <FontIcon Glyph="&#xE72A;" />
-                    </Button>
-                    <Button Command="{x:Bind ViewModel.ToggleFlagCommand}" ToolTipService.ToolTip="フラグ" AutomationProperties.Name="フラグ">
-                        <FontIcon Glyph="&#xE129;" />
-                    </Button>
-                    <Button Command="{x:Bind ViewModel.DeleteCommand}" ToolTipService.ToolTip="削除" AutomationProperties.Name="削除">
-                        <FontIcon Glyph="&#xE74D;" />
-                    </Button>
-                    <Button Command="{x:Bind ViewModel.ArchiveCommand}" ToolTipService.ToolTip="アーカイブ" AutomationProperties.Name="アーカイブ">
-                        <FontIcon Glyph="&#xE7B8;" />
-                    </Button>
-                </StackPanel>
+            <!-- Shown until a message is opened. -->
+            <TextBlock
+                Grid.RowSpan="3"
+                Text="メールを選択してください"
+                Foreground="{ThemeResource TextSecondaryBrush}"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Visibility="{x:Bind NoSelectionVisibility(ViewModel.SelectedMessage), Mode=OneWay}" />
+
+            <StackPanel
+                Grid.Row="0"
+                Padding="40,24,40,16"
+                Spacing="20"
+                Visibility="{x:Bind ViewModel.SelectedMessage, Mode=OneWay, Converter={StaticResource ObjectToVisibilityConverter}}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4" Margin="-8,0,0,0">
+                        <Button Style="{StaticResource PillButtonStyle}" Click="OnReplyClick" ToolTipService.ToolTip="返信" AutomationProperties.Name="返信">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE97A;" FontSize="14" />
+                                <TextBlock Text="返信" />
+                            </StackPanel>
+                        </Button>
+                        <Button Style="{StaticResource GhostIconButtonStyle}" Click="OnReplyAllClick" ToolTipService.ToolTip="全員に返信" AutomationProperties.Name="全員に返信">
+                            <FontIcon Glyph="&#xE8CA;" FontSize="16" />
+                        </Button>
+                        <Button Style="{StaticResource GhostIconButtonStyle}" Click="OnForwardClick" ToolTipService.ToolTip="転送" AutomationProperties.Name="転送">
+                            <FontIcon Glyph="&#xE72A;" FontSize="16" />
+                        </Button>
+                    </StackPanel>
+                    <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="2">
+                        <Button Style="{StaticResource GhostIconButtonStyle}" Command="{x:Bind ViewModel.ToggleFlagCommand}" ToolTipService.ToolTip="フラグ" AutomationProperties.Name="フラグ">
+                            <FontIcon Glyph="&#xE129;" FontSize="16" />
+                        </Button>
+                        <Button Style="{StaticResource GhostIconButtonStyle}" Command="{x:Bind ViewModel.ArchiveCommand}" ToolTipService.ToolTip="アーカイブ" AutomationProperties.Name="アーカイブ">
+                            <FontIcon Glyph="&#xE7B8;" FontSize="16" />
+                        </Button>
+                        <Button Style="{StaticResource GhostIconButtonStyle}" Command="{x:Bind ViewModel.DeleteCommand}" ToolTipService.ToolTip="削除" AutomationProperties.Name="削除">
+                            <FontIcon Glyph="&#xE74D;" FontSize="16" />
+                        </Button>
+                    </StackPanel>
+                </Grid>
 
                 <TextBlock
                     Text="{x:Bind ViewModel.SelectedMessage.Subject, Mode=OneWay}"
-                    Style="{ThemeResource SubtitleTextBlockStyle}"
+                    FontSize="28"
+                    FontWeight="Bold"
+                    LineHeight="38"
                     TextWrapping="Wrap" />
 
-                <Grid ColumnSpacing="10">
+                <Grid ColumnSpacing="14">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <Grid Grid.Column="0" Width="36" Height="36">
+                    <Grid Grid.Column="0" Width="48" Height="48">
                         <Border
-                            CornerRadius="18"
+                            CornerRadius="15"
                             Background="{x:Bind SenderAvatarColor(ViewModel.SelectedMessage.FromDisplay), Mode=OneWay}">
                             <TextBlock
                                 Text="{x:Bind SenderInitial(ViewModel.SelectedMessage.FromDisplay), Mode=OneWay}"
                                 Foreground="White"
+                                FontSize="19"
                                 FontWeight="SemiBold"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center" />
                         </Border>
-                        <!-- Overlays the colored-initial fallback once (if) a real logo for this
-                             sender's domain is fetched — see UpdateSenderLogoAsync. A Border
-                             clipping its Background to CornerRadius anti-aliases noticeably more
-                             smoothly than an Ellipse filled with the same ImageBrush.
-                             SenderLogoBacking gets an opaque white Background (set in
-                             UpdateSenderLogoAsync, only when a logo actually exists) so a favicon
-                             with a transparent background doesn't let the colored initial
-                             underneath show through and look like it's colliding with the logo. -->
-                        <Border x:Name="SenderLogoBacking" CornerRadius="18" />
-                        <Border CornerRadius="18">
+                        <!-- Overlays the colored-initial fallback once (if) a logo that is sharp
+                             enough is cached for this sender's domain (see UpdateSenderLogoAsync and
+                             SenderLogoRender). SenderLogoBacking gets an opaque white Background only
+                             when a logo is shown, so a transparent-background logo doesn't let the
+                             initial underneath show through. -->
+                        <Border x:Name="SenderLogoBacking" CornerRadius="15" />
+                        <Border CornerRadius="15">
                             <Border.Background>
                                 <ImageBrush x:Name="SenderLogoBrush" Stretch="UniformToFill" />
                             </Border.Background>
-                        </Border>                    </Grid>
-                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                        <TextBlock Text="{x:Bind ViewModel.SelectedMessage.FromDisplay, Mode=OneWay}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                        <TextBlock Text="{x:Bind ViewModel.SelectedMessage.FromAddress, Mode=OneWay}" Opacity="0.6" FontSize="12" TextTrimming="CharacterEllipsis" />
+                        </Border>
+                    </Grid>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                        <TextBlock Text="{x:Bind ViewModel.SelectedMessage.FromDisplay, Mode=OneWay}" FontSize="15" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{x:Bind ViewModel.SelectedMessage.FromAddress, Mode=OneWay}" Foreground="{ThemeResource TextSecondaryBrush}" FontSize="12.5" TextTrimming="CharacterEllipsis" />
                     </StackPanel>
                     <TextBlock
                         Grid.Column="2"
                         Text="{x:Bind ViewModel.SelectedMessage.Date, Mode=OneWay, Converter={StaticResource DateTimeOffsetToShortStringConverter}}"
-                        Opacity="0.6"
+                        Foreground="{ThemeResource TextSecondaryBrush}"
+                        FontSize="12.5"
                         VerticalAlignment="Top" />
                 </Grid>
 
@@ -103,34 +131,42 @@
                     Visibility="{x:Bind ViewModel.ErrorMessage, Mode=OneWay, Converter={StaticResource StringToVisibilityConverter}}" />
                 <ProgressRing IsActive="{x:Bind ViewModel.IsBusy, Mode=OneWay}" HorizontalAlignment="Left" Width="16" Height="16" />
             </StackPanel>
-        </Border>
 
-        <InfoBar
-            Grid.Row="1"
-            Margin="16,8,16,0"
-            IsOpen="{x:Bind ViewModel.HasBlockedRemoteImages, Mode=OneWay}"
-            Severity="Informational"
-            Title="リモート画像をブロックしました"
-            Message="プライバシー保護のため、外部サーバーの画像を読み込んでいません。">
-            <InfoBar.ActionButton>
-                <Button Content="画像を読み込む" Command="{x:Bind ViewModel.LoadRemoteImagesCommand}" />
-            </InfoBar.ActionButton>
-        </InfoBar>
+            <InfoBar
+                Grid.Row="1"
+                Margin="40,0,40,8"
+                CornerRadius="12"
+                IsOpen="{x:Bind ViewModel.HasBlockedRemoteImages, Mode=OneWay}"
+                Severity="Informational"
+                Title="リモート画像をブロックしました"
+                Message="プライバシー保護のため、外部サーバーの画像を読み込んでいません。">
+                <InfoBar.ActionButton>
+                    <Button Content="画像を読み込む" Command="{x:Bind ViewModel.LoadRemoteImagesCommand}" />
+                </InfoBar.ActionButton>
+            </InfoBar>
 
-        <Grid Grid.Row="2">
-            <ScrollViewer Visibility="{x:Bind IsPlainTextVisible(ViewModel.IsHtml), Mode=OneWay}">
-                <TextBlock
-                    Margin="16,0,16,16"
-                    TextWrapping="Wrap"
-                    Text="{x:Bind ViewModel.PlainTextBody, Mode=OneWay}" />
-            </ScrollViewer>
+            <Grid Grid.Row="2">
+                <ScrollViewer Visibility="{x:Bind IsPlainTextVisible(ViewModel.IsHtml), Mode=OneWay}">
+                    <TextBlock
+                        Margin="40,0,40,32"
+                        FontSize="16"
+                        LineHeight="29"
+                        TextWrapping="Wrap"
+                        IsTextSelectionEnabled="True"
+                        Text="{x:Bind ViewModel.PlainTextBody, Mode=OneWay}" />
+                </ScrollViewer>
 
-            <!-- The WebView2 itself is created in code (ReadingPaneView.CreateWebView) so it can be
-                 torn down and replaced if its browser process dies; this host carries the binding
-                 that a replaceable child couldn't keep. -->
-            <Grid
-                x:Name="BodyWebViewHost"
-                Visibility="{x:Bind ViewModel.IsHtml, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
+                <!-- HTML mail is authored for a white page, so it is always shown on one, in dark
+                     mode too, where letting the dark card show through would make dark-on-dark text
+                     unreadable. The WebView2 itself is created in code (so it can be rebuilt if its
+                     browser process dies); this host carries the binding a replaceable child couldn't
+                     keep. -->
+                <Grid
+                    x:Name="BodyWebViewHost"
+                    Margin="24,0,24,24"
+                    Background="White"
+                    Visibility="{x:Bind ViewModel.IsHtml, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
+            </Grid>
         </Grid>
-    </Grid>
+    </Border>
 </UserControl>

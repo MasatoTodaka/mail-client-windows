@@ -22,7 +22,15 @@ public sealed class MailMessage : INotifyPropertyChanged
     public string? CcRecipients { get; set; }
 
     public required DateTimeOffset Date { get; set; }
-    public string Snippet { get; set; } = string.Empty;
+
+    // Filled in from the body the first time a message is opened. Notifies (like IsRead) so the
+    // list row can show the preview without being replaced, which would lose its selection.
+    private string _snippet = string.Empty;
+    public string Snippet
+    {
+        get => _snippet;
+        set => SetField(ref _snippet, value);
+    }
 
     // MessageActionService mutates these two in place on the exact instance a message list row
     // is bound to (rather than only writing the DB and waiting for a reload), so it can give

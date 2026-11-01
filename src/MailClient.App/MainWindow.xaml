@@ -9,25 +9,46 @@
     Title="Mail Client">
 
     <!--
-        M0: static 3-pane placeholder shell (sidebar / message list / reading pane), matching
-        macOS Mail's fixed layout proportions. All three panes now own real view models
-        (sidebar M3, message list M4, reading pane M5), composed here by code-behind.
+        "Paper" layout: a warm app background carrying three areas: the folder sidebar, the
+        message list (one card per message) and the reading pane (a single large card). The root
+        owns the background, font and text color; everything inside inherits them, and the whole
+        palette switches with the root's RequestedTheme (see ThemeService).
     -->
+    <ContentControl
+        HorizontalContentAlignment="Stretch"
+        VerticalContentAlignment="Stretch"
+        IsTabStop="False"
+        Background="{ThemeResource AppBackgroundBrush}"
+        Foreground="{ThemeResource TextPrimaryBrush}"
+        FontFamily="{StaticResource AppFontFamily}">
     <Grid x:Name="RootGrid">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="220" />
-            <ColumnDefinition Width="320" />
-            <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="40" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
 
-        <Border Grid.Column="0" BorderThickness="0,0,1,0" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
-            <shell:SidebarView x:Name="Sidebar" Margin="16" />
-        </Border>
+        <!-- Custom title bar: the caption buttons are drawn over its right edge by the system. -->
+        <Grid x:Name="AppTitleBar" Grid.Row="0" Padding="16,0,0,0" ColumnSpacing="10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Image Grid.Column="0" Source="ms-appx:///Assets/Square44x44Logo.png" Width="18" Height="18" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="1" Text="Mail" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+        </Grid>
 
-        <Border Grid.Column="1" BorderThickness="0,0,1,0" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
-            <shell:MessageListView x:Name="MessageList" />
-        </Border>
+        <Grid Grid.Row="1" Margin="8,0,8,8" ColumnSpacing="4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="248" />
+                <ColumnDefinition Width="440" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
 
-        <shell:ReadingPaneView x:Name="ReadingPane" Grid.Column="2" />
+            <shell:SidebarView x:Name="Sidebar" Grid.Column="0" Margin="8,0,8,0" />
+            <shell:MessageListView x:Name="MessageList" Grid.Column="1" />
+            <shell:ReadingPaneView x:Name="ReadingPane" Grid.Column="2" />
+        </Grid>
     </Grid>
+    </ContentControl>
 </Window>
