@@ -22,4 +22,10 @@ public interface ISettingsStore
     // self-reported Date: header). Keeps it from re-running on every launch once done.
     Task<bool> GetReceivedDateBackfillCompleteAsync(Guid accountId, CancellationToken ct);
     Task SetReceivedDateBackfillCompleteAsync(Guid accountId, CancellationToken ct);
+
+    // One-time guard for the startup mojibake cleanup of subjects/bodies cached before
+    // MojibakeFixer existed. Everything fetched since is fixed at fetch time, so re-reading every
+    // cached body file on every launch (which used to delay the window appearing) is no longer needed.
+    Task<bool> GetMojibakeBackfillCompleteAsync(CancellationToken ct);
+    Task SetMojibakeBackfillCompleteAsync(CancellationToken ct);
 }

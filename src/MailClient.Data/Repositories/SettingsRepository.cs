@@ -41,6 +41,14 @@ public sealed class SettingsRepository(MailDbContext db) : ISettingsStore
     public Task SetReceivedDateBackfillCompleteAsync(Guid accountId, CancellationToken ct) =>
         SetAsync(ReceivedDateBackfillCompleteKey(accountId), "1", ct);
 
+    public async Task<bool> GetMojibakeBackfillCompleteAsync(CancellationToken ct) =>
+        await GetAsync(MojibakeBackfillCompleteKey, ct) == "1";
+
+    public Task SetMojibakeBackfillCompleteAsync(CancellationToken ct) =>
+        SetAsync(MojibakeBackfillCompleteKey, "1", ct);
+
+    private const string MojibakeBackfillCompleteKey = "mojibake_backfill_complete";
+
     private static string ReceivedDateBackfillCompleteKey(Guid accountId) =>
         $"received_date_backfill_complete:{accountId}";
 

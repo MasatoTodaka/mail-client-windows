@@ -52,41 +52,13 @@ public partial class App : Application
     {
         await Services.GetRequiredService<MailDbContext>().MigrateAsync();
 
-        // One-time local cleanup: re-decode any subject or cached body file that predates
-        // MojibakeFixer. Local-only and idempotent (no-ops once everything's already fixed), so
-        // it's safe to just run on every launch rather than tracking whether it's needed.
-        try
-        {
-            var messageStore = Services.GetRequiredService<IMessageStore>();
-            await messageStore.FixMojibakeSubjectsAsync(CancellationToken.None);
-
-            foreach (var message in await messageStore.GetDownloadedBodyMessagesAsync(CancellationToken.None))
-            {
-                if (message.BodyTextPath is { } textPath && File.Exists(textPath))
-                {
-                    var text = await File.ReadAllTextAsync(textPath);
-                    var fixedText = MojibakeFixer.Fix(text);
-                    if (fixedText != text)
-                        await File.WriteAllTextAsync(textPath, fixedText);
-                }
-
-                if (message.BodyHtmlPath is { } htmlPath && File.Exists(htmlPath))
-                {
-                    var html = await File.ReadAllTextAsync(htmlPath);
-                    var fixedHtml = MojibakeFixer.Fix(html);
-                    if (fixedHtml != html)
-                        await File.WriteAllTextAsync(htmlPath, fixedHtml);
-                }
-            }
-        }
-        catch
-        {
-            // Best-effort cleanup; must not block startup.
-        }
-
         _mainWindow = new MainWindow();
         _mainWindow.Activate();
         _mainWindow.Closed += OnMainWindowClosed;
+
+        // Kicked off only after the window is up: this used to run (and re-read every cached
+        // body file) before the window was even created, on every launch.
+        _ = Task.Run(BackfillMojibakeOnceAsync);
 
         SetUpTrayIcon();
 
@@ -228,6 +200,47 @@ public partial class App : Application
         catch
         {
             // Best-effort feature; must not take the app down.
+        }
+    }
+
+    // Re-decodes any subject or cached body file that predates MojibakeFixer. Everything fetched
+    // since is fixed at fetch time, so this only needs to succeed once per database; the flag is
+    // set only after a full clean pass, so an interrupted or failed run is retried next launch.
+    private static async Task BackfillMojibakeOnceAsync()
+    {
+        try
+        {
+            var settingsStore = Services.GetRequiredService<ISettingsStore>();
+            if (await settingsStore.GetMojibakeBackfillCompleteAsync(CancellationToken.None))
+                return;
+
+            var messageStore = Services.GetRequiredService<IMessageStore>();
+            await messageStore.FixMojibakeSubjectsAsync(CancellationToken.None);
+
+            foreach (var message in await messageStore.GetDownloadedBodyMessagesAsync(CancellationToken.None))
+            {
+                if (message.BodyTextPath is { } textPath && File.Exists(textPath))
+                {
+                    var text = await File.ReadAllTextAsync(textPath);
+                    var fixedText = MojibakeFixer.Fix(text);
+                    if (fixedText != text)
+                        await File.WriteAllTextAsync(textPath, fixedText);
+                }
+
+                if (message.BodyHtmlPath is { } htmlPath && File.Exists(htmlPath))
+                {
+                    var html = await File.ReadAllTextAsync(htmlPath);
+                    var fixedHtml = MojibakeFixer.Fix(html);
+                    if (fixedHtml != html)
+                        await File.WriteAllTextAsync(htmlPath, fixedHtml);
+                }
+            }
+
+            await settingsStore.SetMojibakeBackfillCompleteAsync(CancellationToken.None);
+        }
+        catch
+        {
+            // Best-effort cleanup; must never disturb the running app.
         }
     }
 

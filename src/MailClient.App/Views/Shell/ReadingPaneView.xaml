@@ -85,6 +85,13 @@
                                 <ImageBrush x:Name="SenderLogoBrush" Stretch="UniformToFill" />
                             </Border.Background>
                         </Border>
+                        <!-- Small raster logos are drawn here at about native size instead of being
+                             stretched into the circle above (see SenderLogoRender). -->
+                        <Image
+                            x:Name="SenderLogoBadge"
+                            Stretch="Uniform"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center" />
                     </Grid>
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                         <TextBlock Text="{x:Bind ViewModel.SelectedMessage.FromDisplay, Mode=OneWay}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
@@ -126,8 +133,11 @@
                     Text="{x:Bind ViewModel.PlainTextBody, Mode=OneWay}" />
             </ScrollViewer>
 
-            <WebView2
-                x:Name="BodyWebView"
+            <!-- The WebView2 itself is created in code (ReadingPaneView.CreateWebView) so it can be
+                 torn down and replaced if its browser process dies; this host carries the binding
+                 that a replaceable child couldn't keep. -->
+            <Grid
+                x:Name="BodyWebViewHost"
                 Visibility="{x:Bind ViewModel.IsHtml, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
         </Grid>
     </Grid>

@@ -1,3 +1,4 @@
+using System.Data;
 using System.Reflection;
 using Microsoft.Data.Sqlite;
 
@@ -29,12 +30,38 @@ public sealed class MailDbContext
         }.ToString();
     }
 
-    public SqliteConnection CreateConnection() => new(_connectionString);
+    // Every repository call opens its own short-lived connection. With the default rollback journal
+    // and synchronous=FULL, each single-row write was its own fsync'd transaction (a 50-header sync
+    // = 50+ fsyncs) and readers blocked behind writers. The database runs in WAL mode (set once in
+    // MigrateAsync; it persists in the file), and synchronous=NORMAL -- the recommended pairing for
+    // WAL, which can still never corrupt the file -- is per connection, so it's applied on open.
+    public SqliteConnection CreateConnection()
+    {
+        var connection = new SqliteConnection(_connectionString);
+        connection.StateChange += static (sender, e) =>
+        {
+            if (e.CurrentState != ConnectionState.Open || sender is not SqliteConnection opened)
+                return;
+
+            using var command = opened.CreateCommand();
+            command.CommandText = "PRAGMA synchronous = NORMAL;";
+            command.ExecuteNonQuery();
+        };
+        return connection;
+    }
 
     public async Task MigrateAsync(CancellationToken ct = default)
     {
         await using var connection = CreateConnection();
         await connection.OpenAsync(ct);
+
+        // Must run outside a transaction. Returns the resulting mode ("wal", or the old mode if the
+        // filesystem can't do WAL) rather than failing, so there's nothing to handle.
+        await using (var walCommand = connection.CreateCommand())
+        {
+            walCommand.CommandText = "PRAGMA journal_mode = WAL;";
+            await walCommand.ExecuteScalarAsync(ct);
+        }
 
         var currentVersion = await GetUserVersionAsync(connection, ct);
 

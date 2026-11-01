@@ -1,3 +1,4 @@
+using MailClient.App.Views;
 using MailClient.Core.Abstractions;
 using MailClient.ViewModels.Shell;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,7 +27,25 @@ public sealed partial class MainWindow : Window
         // bar icon (that comes from the window's own icon resource), so set it explicitly.
         AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "AppIcon.ico"));
 
-        Activated += (_, e) => IsWindowActive = e.WindowActivationState != WindowActivationState.Deactivated;
+        Activated += async (_, e) =>
+        {
+            IsWindowActive = e.WindowActivationState != WindowActivationState.Deactivated;
+
+            // Coming back (notably from the tray after hours hidden) is when a dead or blanked
+            // message body would be noticed -- verify it and repair it if needed.
+            if (IsWindowActive)
+                await ReadingPane.EnsureBodyRenderedAsync();
+        };
+
+        // Sender-logo sizing needs the display scale; keep it current across monitor/DPI changes.
+        if (Content is FrameworkElement root)
+        {
+            root.Loaded += (_, _) =>
+            {
+                SenderLogoRender.Scale = root.XamlRoot.RasterizationScale;
+                root.XamlRoot.Changed += (xamlRoot, _) => SenderLogoRender.Scale = xamlRoot.RasterizationScale;
+            };
+        }
 
         Sidebar.ViewModel.FolderSelected += async (_, folder) => await MessageList.ViewModel.LoadAsync(folder);
         MessageList.ViewModel.MessageSelected += async (_, message) => await ReadingPane.ViewModel.LoadAsync(message);

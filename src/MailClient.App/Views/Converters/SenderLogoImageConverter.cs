@@ -1,8 +1,6 @@
 using MailClient.Core.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml.Data;
-using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Media.Imaging;
 
 namespace MailClient.App.Views.Converters;
 
@@ -12,6 +10,10 @@ namespace MailClient.App.Views.Converters;
 // it can never show a logo left over from whichever sender that container previously displayed.
 // Actual fetching happens in the background via MessageListViewModel's prefetch, which triggers
 // a list refresh once new logos land in the cache.
+//
+// ConverterParameter picks which of the avatar's two logo layers this binding feeds (see
+// SenderLogoRender): "fill" (default) is the full-circle brush layer, "badge" the small centered
+// image layer. A given logo only ever appears in one of them -- the other gets null.
 public sealed class SenderLogoImageConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)
@@ -24,25 +26,31 @@ public sealed class SenderLogoImageConverter : IValueConverter
         // silently went stale (still looking for the old "{domain}.png" name) the last time that
         // logic changed in SenderLogoService.
         var senderLogoService = App.Services.GetRequiredService<ISenderLogoService>();
-        var path = senderLogoService.GetCachedLogoPath(emailAddress);
-        return (object?)CreateImageSource(path) ?? null!;
+        var info = SenderLogoRender.For(senderLogoService.GetCachedLogoPath(emailAddress), SenderLogoRender.ListAvatarDip);
+        if (info is null)
+            return null!;
+
+        var wantsBadge = parameter is string p && p == "badge";
+        return info.Fill != wantsBadge ? info.Source : null!;
     }
 
     public object ConvertBack(object value, Type targetType, object parameter, string language) =>
         throw new NotSupportedException();
+}
 
-    // Shared with ReadingPaneView's code-behind logo update (which can't use an x:Bind converter
-    // since it isn't driven by a DataTemplate). Simple Icons entries are cached as .svg;
-    // Google-favicon fallbacks as .png -- SvgImageSource rasterizes on demand at whatever size the
-    // element actually renders at, so an .svg source never blurs or shows clip-edge aliasing the
-    // way a small upscaled .png can.
-    public static ImageSource? CreateImageSource(string? path)
+// Side length (DIPs) for the "badge" layer's Image; irrelevant when the logo fills the circle.
+public sealed class SenderLogoBadgeSizeConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, string language)
     {
-        if (path is null)
-            return null;
+        if (value is not string emailAddress || string.IsNullOrWhiteSpace(emailAddress))
+            return 28d;
 
-        return Path.GetExtension(path).Equals(".svg", StringComparison.OrdinalIgnoreCase)
-            ? new SvgImageSource(new Uri(path))
-            : new BitmapImage(new Uri(path));
+        var senderLogoService = App.Services.GetRequiredService<ISenderLogoService>();
+        var info = SenderLogoRender.For(senderLogoService.GetCachedLogoPath(emailAddress), SenderLogoRender.ListAvatarDip);
+        return info?.BadgeDip ?? 28d;
     }
+
+    public object ConvertBack(object value, Type targetType, object parameter, string language) =>
+        throw new NotSupportedException();
 }

@@ -63,12 +63,30 @@ public sealed class SenderLogoService(AppDataPaths appDataPaths, ISettingsStore 
 
     public bool IsLogoCached(string emailAddress) => GetCachedLogoPath(emailAddress) is not null;
 
+    // Remembers, per registrable domain, the file a previous lookup found on disk. The message
+    // list binds this once per row (several File.Exists calls plus domain parsing each time) and
+    // rebinds on every scroll, so repeating the disk probes was real per-frame work. Only hits are
+    // remembered: a miss has to stay a miss only until the background fetch lands the file. Cache
+    // files are write-once (the path embeds CacheVersion), so a remembered path never goes stale.
+    private readonly ConcurrentDictionary<string, string> _knownPaths = new(StringComparer.OrdinalIgnoreCase);
+
     public string? GetCachedLogoPath(string emailAddress)
     {
         var domain = ExtractDomain(emailAddress);
         if (domain is null)
             return null;
 
+        if (_knownPaths.TryGetValue(domain, out var known) && File.Exists(known))
+            return known;
+
+        var found = FindCachedLogoPath(domain);
+        if (found is not null)
+            _knownPaths[domain] = found;
+        return found;
+    }
+
+    private string? FindCachedLogoPath(string domain)
+    {
         var bimiPath = BimiCachePath(domain);
         if (File.Exists(bimiPath))
             return bimiPath;
@@ -377,8 +395,12 @@ public sealed class SenderLogoService(AppDataPaths appDataPaths, ISettingsStore 
             return null;
 
         var domain = emailAddress[(at + 1)..].Trim().ToLowerInvariant();
-        return domain.Length == 0 || !domain.All(c => !Path.GetInvalidFileNameChars().Contains(c))
+        return domain.Length == 0 || domain.IndexOfAny(InvalidFileNameChars) >= 0
             ? null
             : domain;
     }
+
+    // Path.GetInvalidFileNameChars() allocates a fresh array per call; this used to be called once
+    // per character of every domain, on every row bind.
+    private static readonly char[] InvalidFileNameChars = Path.GetInvalidFileNameChars();
 }
