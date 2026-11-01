@@ -18,10 +18,9 @@
         HorizontalContentAlignment="Stretch"
         VerticalContentAlignment="Stretch"
         IsTabStop="False"
-        Background="{ThemeResource AppBackgroundBrush}"
         Foreground="{ThemeResource TextPrimaryBrush}"
         FontFamily="{StaticResource AppFontFamily}">
-    <Grid x:Name="RootGrid">
+    <Grid x:Name="RootGrid" Background="{ThemeResource AppBackgroundBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="40" />
             <RowDefinition Height="*" />
@@ -41,8 +40,8 @@
         <Grid Grid.Row="1" Margin="8,0,8,8" ColumnSpacing="4">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="248" />
-                <ColumnDefinition Width="440" />
-                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" MinWidth="320" MaxWidth="440" />
+                <ColumnDefinition Width="2*" MinWidth="440" />
             </Grid.ColumnDefinitions>
 
             <shell:SidebarView x:Name="Sidebar" Grid.Column="0" Margin="8,0,8,0" />

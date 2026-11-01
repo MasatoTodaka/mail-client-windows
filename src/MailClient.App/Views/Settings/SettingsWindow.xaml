@@ -12,7 +12,8 @@
         <MicaBackdrop />
     </Window.SystemBackdrop>
 
-    <ContentControl HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" IsTabStop="False" Background="{ThemeResource AppBackgroundBrush}" Foreground="{ThemeResource TextPrimaryBrush}" FontFamily="{StaticResource AppFontFamily}">
+    <ContentControl HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" IsTabStop="False" Foreground="{ThemeResource TextPrimaryBrush}" FontFamily="{StaticResource AppFontFamily}">
+    <Grid Background="{ThemeResource AppBackgroundBrush}">
     <ScrollViewer Padding="24">
         <StackPanel Spacing="8" MinWidth="420">
 
@@ -73,5 +74,6 @@
 
         </StackPanel>
     </ScrollViewer>
+    </Grid>
     </ContentControl>
 </Window>

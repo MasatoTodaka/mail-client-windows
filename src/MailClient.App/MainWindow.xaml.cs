@@ -22,6 +22,13 @@ public sealed partial class MainWindow : Window
         InitializeComponent();
 
         // The warm palette is opaque, so no Mica; the custom title bar blends into the background.
+        // Sidebar + list + reading pane stop being usable below roughly this width.
+        if (AppWindow.Presenter is Microsoft.UI.Windowing.OverlappedPresenter presenter)
+        {
+            presenter.PreferredMinimumWidth = 1040;
+            presenter.PreferredMinimumHeight = 560;
+        }
+
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);
         App.Services.GetRequiredService<ThemeService>().Register(this);
