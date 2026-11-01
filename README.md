@@ -1,45 +1,74 @@
-# Mail Client (Windows / WinUI 3)
+<p align="center">
+  <img src="docs/images/logo.png" width="96" alt="Mail Client のロゴ">
+</p>
 
-macOS純正Mailアプリ風の3ペインUI（サイドバー／メッセージ一覧／閲覧ペイン）を持つ、汎用IMAP/SMTP対応のWindowsデスクトップメールクライアント。
+<h1 align="center">Mail Client</h1>
 
-実装計画の全文は `../.claude/plans/distributed-juggling-teapot.md`（このリポジトリ作成時点のプランファイル）を参照。以下はその要約と、Windows機での実行手順。
+<p align="center">
+  IMAP / SMTP に対応した、Windows 向けのデスクトップメールクライアント（WinUI 3）。<br>
+  サイドバー・メール一覧・閲覧ペインの3ペイン構成で、ライト / ダークの両テーマに対応しています。
+</p>
 
-## 現在の状態
+<p align="center">
+  <img src="docs/images/light.png" width="49%" alt="ライトテーマの画面イメージ">
+  <img src="docs/images/dark.png" width="49%" alt="ダークテーマの画面イメージ">
+</p>
 
-- **M0（このコミット時点で完了）**: 空のWinUI 3シェル。3ペインのプレースホルダ、DIホスト（`Microsoft.Extensions.Hosting`）、Micaバックドロップ、ソリューション一式（Core / ViewModels / Data / Mail / Platform / Infrastructure / App）
-- M1以降（SQLite+FTS5、アカウント設定、IMAP同期、送受信、IDLE、検索、通知）は未実装。マイルストーン一覧はプランファイルの §6 を参照
+> 上の画像は、架空のサンプルデータで描いた**画面イメージ**です（実際のメールが写らないようにしています）。生成方法は [docs/preview](docs/preview) を参照してください。
 
-## ビルド方法（Windows機で実施）
+## 主な機能
 
-このリポジトリはMac上で作成されているため、ビルド・実行確認は未実施です。Windows機で以下を行ってください。
+- **受信・同期**: IMAP（IDLE によるライブ更新、非対応サーバーはポーリング）。アカウント追加時に受信トレイの全履歴を取得
+- **送信**: 返信 / 全員に返信 / 転送。送信キュー（Outbox）経由で、オフライン時も取りこぼしません
+- **検索**: SQLite FTS5 による全フォルダ横断の全文検索
+- **仕分けルール**: 送信者・件名の条件で、新着メールを自動でフォルダへ移動
+- **見た目**: 送信元ロゴ（BIMI / 企業ロゴ、設定でオン・オフ）、メール一覧のプレビュー、ライト / ダーク / システム連動のテーマ切り替え
+- **使い勝手**: ワンタイムパスワードを検出して自動でクリップボードにコピー、デスクトップ通知、タスクトレイ常駐、フォルダのドラッグ並べ替え
+- **プライバシー**: リモート画像は既定でブロック（トラッキング対策）。パスワードは Windows の資格情報ロッカーに保存
 
-1. **前提ツール**: Visual Studio 2022 (17.10+) — ワークロード「.NET デスクトップ開発」+「Windows App SDK C# テンプレート」。または `dotnet` CLI 8.0.x + Windows App SDK
-2. リポジトリを Windows機にコピー/クローン
-3. `MailClient.sln` を Visual Studio で開くか、`dotnet build MailClient.sln` を実行
-4. `MailClient.App` を「スタートアッププロジェクト」に設定し、実行構成を `Debug | x64`（または環境に応じて `x86`/`ARM64`）にして起動
-5. 3ペインのプレースホルダウィンドウが表示され、Windowsのライト/ダーク設定に応じて外観が切り替わることを確認
+## インストール
 
-`MailClient.Core` / `MailClient.ViewModels` / `MailClient.Data` / `MailClient.Mail` は `net8.0`（Windows非依存）なので、`dotnet build` / `dotnet test` はこのMac上でも実行可能。`MailClient.App` / `MailClient.Platform` は `net8.0-windows10.0.19041.0` のためWindows機が必要。
+[Releases](../../releases) から最新の `MailClient.App_<バージョン>_x64_Test.zip` をダウンロードし、展開して `Add-AppDevPackage.ps1` を実行するか、`.msix` を `Add-AppxPackage` で入れます。
 
-## 既知の注意点
+署名は自己署名の証明書（`CN=MasatoToda`）です。初回は同梱の `.cer` を「信頼されたユーザー」に登録する必要があります（スクリプトが案内します）。アップグレードでは、メールや設定のローカルデータは保持されます。
 
-- `Microsoft.WindowsAppSDK` / `Microsoft.Windows.SDK.BuildTools` のバージョンはこのリポジトリ作成時点の値を仮置きしています。`dotnet restore` / VS の NuGet復元で該当バージョンが見つからない（NU1102等）場合は、NuGetパッケージマネージャーで最新の安定版に上げてください
-- `Package.appxmanifest` の `Publisher="CN=MasatoToda"` は仮の値です。初回デバッグ実行時にVisual Studioが自己署名のテスト証明書を自動生成して整合させるので、通常はそのままでF5実行できます。ストア配布時は正式な発行者証明書に差し替えが必要
-- `Assets/*.png` は単色のプレースホルダ画像です（見た目のみ、機能に影響なし）。後で本物のアイコンに差し替えてください
+## ビルド
 
-## テスト用メールサーバー（M3以降で使用）
+`MailClient.App` は WinUI 3 の MSIX パッケージで、Windows 上でのみビルドできます。
 
-実アカウントに接続する前に、GreenMail（Docker）またはhMailServer（Windowsネイティブ）でIMAP/SMTPをローカル検証する想定。詳細はプランファイル §8 を参照。
+1. **前提**: Visual Studio 2022 以降、ワークロード「.NET デスクトップ開発」「Windows App SDK C# テンプレート」「C++ によるデスクトップ開発」（XAML コンパイラが MSVC ツールセットを要求します）
+2. `MailClient.sln` を開き、`MailClient.App` をスタートアッププロジェクトにして `Debug | x64` で実行
+3. `Package.appxmanifest` の `Version` を上げてからビルドして、通常の `Add-AppxPackage` でアップグレードインストールします（同一バージョンの再インストールは拒否されます）
 
-## ソリューション構成
+テスト（Windows 非依存の部分）:
+
+```
+dotnet test tests/MailClient.Data.Tests
+dotnet test tests/MailClient.Infrastructure.Tests
+dotnet test tests/MailClient.ViewModels.Tests
+```
+
+`v*` タグを push すると、GitHub Actions（[.github/workflows](.github/workflows)）が署名済み MSIX をビルドして Release に載せます。
+
+## 構成
 
 ```
 MailClient.sln
 ├── src/MailClient.App/            # WinUI 3 ヘッド（packaged, net8.0-windows10.0.19041.0）
-├── src/MailClient.ViewModels/     # MVVM ViewModel（net8.0, WinUI非依存）
+├── src/MailClient.ViewModels/     # MVVM ViewModel（net8.0, WinUI 非依存）
 ├── src/MailClient.Core/           # ドメインモデル + サービスインターフェース（net8.0）
-├── src/MailClient.Data/           # SQLite + FTS5 永続化（net8.0）
-├── src/MailClient.Mail/           # MailKit統合（IMAP/SMTP/同期エンジン）（net8.0）
-├── src/MailClient.Platform/       # Credential Locker / AppNotificationManager（net8.0-windows）
-└── src/MailClient.Infrastructure/ # DI合成ルート（net8.0）
+├── src/MailClient.Data/           # SQLite（WAL）+ FTS5 の永続化（net8.0）
+├── src/MailClient.Mail/           # MailKit 統合（IMAP / SMTP / 同期エンジン）（net8.0）
+├── src/MailClient.Platform/       # 資格情報ロッカー / 通知 / クリップボード（net8.0-windows）
+├── src/MailClient.Infrastructure/ # DI 合成ルート・送信元ロゴ取得（net8.0）
+├── tests/                         # xUnit テスト
+├── tools/GenerateIcons.ps1        # アプリアイコン一式をベクター定義から生成
+└── docs/                          # 実装計画、README 用の画面イメージ
 ```
+
+設計の詳細は [docs/implementation-plan.md](docs/implementation-plan.md) を参照してください。
+
+## ロゴとフォント
+
+- ロゴ（青い角丸タイルに白い封筒）は `tools/GenerateIcons.ps1` で生成します。色や形を変えたら再実行してください
+- フォントは [Inter](https://github.com/rsms/inter) と [Noto Sans JP](https://fonts.google.com/noto/specimen/Noto+Sans+JP) をアプリに同梱しています（いずれも SIL Open Font License。ライセンス全文は `src/MailClient.App/Assets/Fonts/OFL-*.txt`）

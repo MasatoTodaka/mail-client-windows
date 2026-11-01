@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>Mail Client preview</title>
+<!--
+  Source of the README screenshots (docs/images/light.png, dark.png). It re-draws the app's main
+  window with invented sample data, so no real mail is ever published. Render with
+  docs/preview/render.ps1. Open it in a browser with ?theme=dark for the dark variant.
+-->
+<style>
+@font-face { font-family: "Inter"; src: url("../../src/MailClient.App/Assets/Fonts/Inter.ttf"); font-weight: 100 900; }
+@font-face { font-family: "Noto Sans JP"; src: url("../../src/MailClient.App/Assets/Fonts/NotoSansJP.ttf"); font-weight: 100 900; }
+:root {
+  --bg: #F6F3EE; --surface: #FFFFFF; --stroke: #E6E0D6; --text: #24211C; --text2: #6B645A;
+  --accent: #2F5DE0; --on-accent: #FFFFFF; --soft: #E6ECFC; --on-soft: #1E3FA8;
+  --badge: #C2410C; --on-badge: #FFFFFF; --flag: #C2410C; --hover: rgba(0,0,0,.06);
+}
+:root[data-theme="dark"] {
+  --bg: #151412; --surface: #1E1C19; --stroke: #302D28; --text: #ECE8E1; --text2: #A39B8E;
+  --accent: #7D9BFF; --on-accent: #0E1530; --soft: #1E2745; --on-soft: #BCCBFF;
+  --badge: #F08A5D; --on-badge: #2A1208; --flag: #F08A5D; --hover: rgba(255,255,255,.08);
+}
+* { box-sizing: border-box; }
+body { margin: 0; width: 1280px; height: 800px; overflow: hidden; background: var(--bg); color: var(--text);
+  font-family: "Inter", "Noto Sans JP", sans-serif; -webkit-font-smoothing: antialiased; }
+.app { display: flex; flex-direction: column; height: 100%; }
+.titlebar { height: 40px; display: flex; align-items: center; gap: 10px; padding: 0 16px; font-size: 13px; font-weight: 600; flex: none; }
+.titlebar img { width: 18px; height: 18px; }
+.titlebar .win { margin-left: auto; display: flex; gap: 26px; color: var(--text); opacity: .8; font-weight: 400; letter-spacing: 2px; }
+.main { flex: 1; min-height: 0; display: grid; grid-template-columns: 248px 400px 1fr; gap: 4px; padding: 0 8px 8px; }
+svg.i { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+.side { padding: 0 8px; display: flex; flex-direction: column; }
+.acct { display: flex; align-items: center; gap: 8px; margin: 0 12px 6px; font-size: 12px; font-weight: 600; color: var(--text2); }
+.acct .b { background: var(--badge); color: var(--on-badge); border-radius: 8px; min-width: 16px; padding: 0 5px; font-size: 11px; font-weight: 700; text-align: center; }
+.folder { height: 38px; margin: 1px 0; padding: 0 12px; border-radius: 12px; display: flex; align-items: center; gap: 12px; font-size: 14px; }
+.folder.sel { background: var(--soft); color: var(--on-soft); }
+.folder .n { margin-left: auto; font-size: 12px; font-weight: 600; color: var(--text2); }
+.side .foot { margin-top: auto; padding: 0 4px 4px; display: flex; gap: 4px; }
+.side .foot span { width: 36px; height: 36px; border-radius: 18px; display: flex; align-items: center; justify-content: center; }
+
+.list { display: flex; flex-direction: column; min-height: 0; }
+.list h1 { margin: 8px 0 14px 8px; font-size: 26px; font-weight: 700; }
+.search { margin: 0 20px 14px 8px; height: 40px; border-radius: 12px; background: var(--surface); border: 1px solid var(--stroke); display: flex; align-items: center; padding: 0 14px; font-size: 14px; color: var(--text2); }
+.search svg { margin-left: auto; }
+.rows { padding: 0 12px 0 0; overflow: hidden; }
+.row { display: flex; gap: 12px; padding: 12px 14px; border-radius: 16px; margin-bottom: 6px; }
+.row.sel { background: var(--soft); }
+.av { position: relative; width: 44px; height: 44px; border-radius: 13px; flex: none; color: #fff; font-size: 17px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+.av .dot { position: absolute; top: -4px; right: -4px; width: 12px; height: 12px; border-radius: 6px; background: var(--accent); border: 2px solid var(--bg); }
+.row.sel .av .dot { border-color: var(--soft); }
+.rc { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.rt { display: flex; align-items: center; gap: 6px; }
+.rt .nm { flex: 1; font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rt .dt { font-size: 12px; color: var(--text2); }
+.rt svg { width: 12px; height: 12px; }
+.sub { font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.snip { font-size: 12.5px; line-height: 18px; color: var(--text2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.unread .nm, .unread .sub { font-weight: 600; }
+
+.read { background: var(--surface); border: 1px solid var(--stroke); border-radius: 20px; display: flex; flex-direction: column; overflow: hidden; }
+.tools { display: flex; align-items: center; gap: 4px; padding: 24px 40px 0 32px; }
+.pill { height: 36px; padding: 0 14px; border-radius: 18px; background: var(--soft); color: var(--on-soft); font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.ib { width: 36px; height: 36px; border-radius: 18px; display: flex; align-items: center; justify-content: center; }
+.read h2 { margin: 20px 40px 0; font-size: 28px; line-height: 38px; font-weight: 700; }
+.from { margin: 20px 40px 0; display: flex; align-items: center; gap: 14px; }
+.from .av { width: 48px; height: 48px; border-radius: 15px; font-size: 19px; }
+.from .who { flex: 1; } .from .who b { display: block; font-size: 15px; font-weight: 600; } .from .who span, .from .when { font-size: 12.5px; color: var(--text2); }
+.body { margin: 24px 40px 0; font-size: 16px; line-height: 29px; max-width: 640px; }
+.body p { margin: 0 0 14px; }
+.att { margin: 8px 40px 0; display: flex; align-items: center; gap: 12px; width: 300px; padding: 12px 14px; border-radius: 14px; background: var(--bg); }
+.att .f { width: 38px; height: 38px; border-radius: 10px; background: var(--soft); color: var(--on-soft); font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.att b { display: block; font-size: 13px; font-weight: 600; } .att span { font-size: 12px; color: var(--text2); }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="titlebar"><img src="../../src/MailClient.App/Assets/Square44x44Logo.targetsize-256_altform-unplated.png" alt=""><span>Mail</span><span class="win">&#8211; &#9633; &#10005;</span></div>
+  <div class="main">
+    <div class="side" id="side"></div>
+    <div class="list"><h1>INBOX</h1><div class="search">すべてのフォルダを検索<svg class="i" viewBox="0 0 24 24"><path d="m21 21-4.3-4.3 M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16z"/></svg></div><div class="rows" id="rows"></div></div>
+    <div class="read">
+      <div class="tools">
+        <div class="pill"><svg class="i" viewBox="0 0 24 24"><path d="M9 17 4 12l5-5 M20 18v-2a4 4 0 0 0-4-4H4"/></svg>返信</div>
+        <div class="ib"><svg class="i" viewBox="0 0 24 24"><path d="m12 17-5-5 5-5 M22 18v-2a4 4 0 0 0-4-4H7 M7 17l-5-5 5-5"/></svg></div>
+        <div class="ib"><svg class="i" viewBox="0 0 24 24"><path d="m15 17 5-5-5-5 M4 18v-2a4 4 0 0 1 4-4h12"/></svg></div>
+        <div style="margin-left:auto;display:flex;gap:2px">
+          <div class="ib"><svg class="i" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z M4 22v-7"/></svg></div>
+          <div class="ib"><svg class="i" viewBox="0 0 24 24"><path d="M21 8v13H3V8 M1 3h22v5H1z M10 12h4"/></svg></div>
+          <div class="ib"><svg class="i" viewBox="0 0 24 24"><path d="M3 6h18 M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6 M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></div>
+        </div>
+      </div>
+      <h2>来週のレビュー会議について</h2>
+      <div class="from"><div class="av" style="background:#7C5CD6">田</div><div class="who"><b>田中 麻衣</b><span>tanaka@example.com</span></div><span class="when">2026/11/01 09:15</span></div>
+      <div class="body">
+        <p>お疲れさまです。来週火曜のレビュー会議に向けて、資料の最新版を共有しました。</p>
+        <p>特に3ページ目の集計方法を変更しています。会議の前にご確認いただき、気になる点があればこのメールに返信してください。</p>
+      </div>
+      <div class="att"><div class="f">PDF</div><div><b>レビュー資料_v3.pdf</b><span>2.4 MB</span></div></div>
+    </div>
+  </div>
+</div>
+<script>
+const theme = new URLSearchParams(location.search).get('theme') || 'light';
+document.documentElement.dataset.theme = theme;
+const ic = {
+  today: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z M12 2v2 M12 20v2 M4.93 4.93l1.41 1.41 M17.66 17.66l1.41 1.41 M2 12h2 M20 12h2 M6.34 17.66l-1.41 1.41 M19.07 4.93l-1.41 1.41',
+  inbox: 'M22 12h-6l-2 3h-4l-2-3H2 M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z',
+  folder: 'M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z',
+  flag: 'M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z M4 22v-7',
+  send: 'm22 2-7 20-4-9-9-4Z M22 2 11 13',
+  draft: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6',
+  trash: 'M3 6h18 M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6 M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2',
+  gear: 'M4 21v-7 M4 10V3 M12 21v-9 M12 8V3 M20 21v-5 M20 12V3 M1 14h6 M9 8h6 M17 16h6',
+  sun: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z M12 2v2 M12 20v2 M4.93 4.93l1.41 1.41 M17.66 17.66l1.41 1.41 M2 12h2 M20 12h2 M6.34 17.66l-1.41 1.41 M19.07 4.93l-1.41 1.41',
+  clip: 'm21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48',
+};
+const svg = d => `<svg class="i" viewBox="0 0 24 24"><path d="${d}"/></svg>`;
+const folders = [['今日', '10', ic.today], ['受信トレイ', '1,204', ic.inbox, 1], ['仕事', '36', ic.folder], ['請求・明細', '', ic.folder], ['旅行', '', ic.folder], ['フラグ付き', '18', ic.flag], ['送信済み', '', ic.send], ['下書き', '', ic.draft], ['ゴミ箱', '219', ic.trash]];
+document.getElementById('side').innerHTML =
+  `<div class="acct">個人用 <span class="b">1,267</span></div>` +
+  folders.map(f => `<div class="folder${f[3] ? ' sel' : ''}">${svg(f[2])}<span>${f[0]}</span><span class="n">${f[1]}</span></div>`).join('') +
+  `<div class="foot"><span>${svg(ic.gear)}</span><span>${svg(ic.sun)}</span></div>`;
+const rows = [
+  ['宅配のお知らせ', '宅', '#2E8B7A', '10:42', 'お荷物のお届け予定日のお知らせ', '本日 14:00〜16:00 にお届け予定です。ご不在の場合は不在票をポストに入れますので、再配達の依頼をお願いします。', 1],
+  ['田中 麻衣', '田', '#7C5CD6', '9:15', '来週のレビュー会議について', '資料の最新版を共有しました。事前にご確認いただけると助かります。特に3ページ目の集計方法を変更しています。', 0, 1, 1, 1],
+  ['Northwind Cloud', 'N', '#0F6CBD', '昨日', '請求書(2026年10月分)が発行されました', '今月のご利用料金と明細をご確認ください。お支払い期日は11月末日です。', 1, 0, 0, 1],
+  ['ミドリ書店', 'ミ', '#C2410C', '昨日', 'ご注文の発送が完了しました', 'ご注文ありがとうございます。商品を発送いたしました。お届けまで2〜3日ほどお待ちください。', 0],
+  ['山本 健', '山', '#B4457A', '金曜日', 'Re: 見積もりの件', '承知しました。金額面は問題ありませんので、このまま進めていただければと思います。', 0],
+];
+document.getElementById('rows').innerHTML = rows.map(r => `
+  <div class="row${r[7] ? ' sel' : ''}${r[6] ? ' unread' : ''}">
+    <div class="av" style="background:${r[2]}">${r[1]}${r[6] ? '<span class="dot"></span>' : ''}</div>
+    <div class="rc"><div class="rt"><span class="nm">${r[0]}</span>${r[8] ? `<span style="color:var(--flag)">${svg(ic.flag)}</span>` : ''}${r[9] ? `<span style="color:var(--text2)">${svg(ic.clip)}</span>` : ''}<span class="dt">${r[3]}</span></div>
+    <div class="sub">${r[4]}</div><div class="snip">${r[5]}</div></div></div>`).join('');
+</script>
+</body>
+</html>
