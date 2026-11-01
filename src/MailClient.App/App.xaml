@@ -71,6 +71,15 @@
             <FontFamily x:Key="AppFontFamily">ms-appx:///Assets/Fonts/Inter.ttf#Inter, ms-appx:///Assets/Fonts/NotoSansJP.ttf#Noto Sans JP, Segoe UI Variable, Yu Gothic UI</FontFamily>
             <FontFamily x:Key="ContentControlThemeFontFamily">ms-appx:///Assets/Fonts/Inter.ttf#Inter, ms-appx:///Assets/Fonts/NotoSansJP.ttf#Noto Sans JP, Segoe UI Variable, Yu Gothic UI</FontFamily>
 
+            <!-- Accent: green instead of the system blue, so toggles, radio buttons and focus rings match the app. -->
+            <Color x:Key="SystemAccentColor">#2F7D5B</Color>
+            <Color x:Key="SystemAccentColorDark1">#2A6F51</Color>
+            <Color x:Key="SystemAccentColorDark2">#256046</Color>
+            <Color x:Key="SystemAccentColorDark3">#1F5C42</Color>
+            <Color x:Key="SystemAccentColorLight1">#4FAE80</Color>
+            <Color x:Key="SystemAccentColorLight2">#5DBB8A</Color>
+            <Color x:Key="SystemAccentColorLight3">#A8E0C3</Color>
+
             <!-- The default list selection draws a thin accent bar; the soft filled highlight replaces it. -->
             <x:Boolean x:Key="ListViewItemSelectionIndicatorVisualEnabled">False</x:Boolean>
 

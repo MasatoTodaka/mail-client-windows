@@ -10,13 +10,19 @@ public static class SnippetBuilder
     private const int MaxLength = 160;
     private static readonly Regex Whitespace = new(@"\s+", RegexOptions.Compiled);
 
+    // Marketing mail pads its hidden preheader with zero-width characters and sometimes
+    // double-encoded entities (&zwnj; &#847;); neither belongs in a visible preview.
+    private static readonly Regex LeftoverEntity = new(@"&#?[A-Za-z0-9]{1,10};", RegexOptions.Compiled);
+    private static readonly Regex Invisible = new(@"[­͏​-‏  ⁠-⁯﻿]", RegexOptions.Compiled);
+
     public static string From(string? plainText, string? html)
     {
         var source = !string.IsNullOrWhiteSpace(plainText) ? plainText : HtmlToText(html);
         if (string.IsNullOrWhiteSpace(source))
             return string.Empty;
 
-        var collapsed = Whitespace.Replace(source, " ").Trim();
+        var cleaned = Invisible.Replace(LeftoverEntity.Replace(source, " "), string.Empty);
+        var collapsed = Whitespace.Replace(cleaned, " ").Trim();
         return collapsed.Length <= MaxLength ? collapsed : collapsed[..MaxLength];
     }
 

@@ -16,6 +16,7 @@ public sealed class MailDbContext
         (4, "0004_settings.sql"),
         (5, "0005_folder_sort_order.sql"),
         (6, "0006_mail_rules.sql"),
+        (7, "0007_clear_dirty_snippets.sql"),
     ];
 
     private readonly string _connectionString;

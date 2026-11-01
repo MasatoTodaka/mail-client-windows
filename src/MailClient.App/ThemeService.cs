@@ -129,9 +129,9 @@ public sealed class ThemeService : IThemeService
         titleBar.ForegroundColor = foreground;
         titleBar.InactiveBackgroundColor = background;
         titleBar.InactiveForegroundColor = inactive;
-        titleBar.ButtonBackgroundColor = Colors.Transparent;
+        titleBar.ButtonBackgroundColor = background;
         titleBar.ButtonForegroundColor = foreground;
-        titleBar.ButtonInactiveBackgroundColor = Colors.Transparent;
+        titleBar.ButtonInactiveBackgroundColor = background;
         titleBar.ButtonInactiveForegroundColor = inactive;
         titleBar.ButtonHoverBackgroundColor = hover;
         titleBar.ButtonHoverForegroundColor = foreground;

@@ -39,3 +39,19 @@ public sealed class SnippetBuilderTests
         Assert.Equal(string.Empty, SnippetBuilder.From(text, html));
     }
 }
+
+public sealed class SnippetBuilderPreheaderTests
+{
+    [Fact]
+    public void ZeroWidthPaddingAndLeftoverEntities_AreRemoved()
+    {
+        var html = "<html><body><div>Dyson &amp;zwnj; &amp;#847; &#8199; &zwnj;&#847;</div><p>犬と暮らす</p></body></html>";
+        Assert.Equal("Dyson 犬と暮らす", SnippetBuilder.From(null, html));
+    }
+
+    [Fact]
+    public void ZeroWidthCharactersInPlainText_AreRemoved()
+    {
+        Assert.Equal("Hello World", SnippetBuilder.From("Hello\u200c\u034f \u200b World", null));
+    }
+}
