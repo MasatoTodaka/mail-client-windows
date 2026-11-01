@@ -55,3 +55,12 @@ public sealed class SnippetBuilderPreheaderTests
         Assert.Equal("Hello World", SnippetBuilder.From("Hello\u200c\u034f \u200b World", null));
     }
 }
+
+public sealed class SnippetBuilderUrlTests
+{
+    [Fact]
+    public void BareUrls_AreDropped()
+    {
+        Assert.Equal("Dyson 犬と暮らす", SnippetBuilder.From("Dyson https://click.e.dyson.co.jp/?qs=ABp7ImQiOjUwNDcs 犬と暮らす", null));
+    }
+}
