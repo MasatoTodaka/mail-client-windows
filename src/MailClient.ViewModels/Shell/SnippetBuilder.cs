@@ -1,4 +1,3 @@
-using System.Text;
 using System.Text.RegularExpressions;
 using HtmlAgilityPack;
 
@@ -13,9 +12,10 @@ public static class SnippetBuilder
     // Marketing mail pads its hidden preheader with zero-width characters and sometimes
     // double-encoded entities (&zwnj; &#847;); neither belongs in a visible preview.
     private static readonly Regex LeftoverEntity = new(@"&#?[A-Za-z0-9]{1,10};", RegexOptions.Compiled);
-    // Bare links (tracking URLs in a header or footer) make a useless preview.
-    private static readonly Regex Url = new(@"https?://S+", RegexOptions.Compiled);
     private static readonly Regex Invisible = new(@"[­͏​-‏  ⁠-⁯﻿]", RegexOptions.Compiled);
+
+    // Bare links (tracking URLs in a header or footer) make a useless preview.
+    private static readonly Regex Url = new(@"https?://\S+", RegexOptions.Compiled);
 
     public static string From(string? plainText, string? html)
     {
