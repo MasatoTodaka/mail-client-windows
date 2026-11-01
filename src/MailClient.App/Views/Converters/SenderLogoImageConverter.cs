@@ -11,9 +11,8 @@ namespace MailClient.App.Views.Converters;
 // Actual fetching happens in the background via MessageListViewModel's prefetch, which triggers
 // a list refresh once new logos land in the cache.
 //
-// ConverterParameter picks which of the avatar's two logo layers this binding feeds (see
-// SenderLogoRender): "fill" (default) is the full-circle brush layer, "badge" the small centered
-// image layer. A given logo only ever appears in one of them -- the other gets null.
+// Returns null both when no logo is cached and when the cached one is too low-resolution to look
+// good (see SenderLogoRender) -- either way the row keeps its colored-initial avatar.
 public sealed class SenderLogoImageConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)
@@ -26,29 +25,7 @@ public sealed class SenderLogoImageConverter : IValueConverter
         // silently went stale (still looking for the old "{domain}.png" name) the last time that
         // logic changed in SenderLogoService.
         var senderLogoService = App.Services.GetRequiredService<ISenderLogoService>();
-        var info = SenderLogoRender.For(senderLogoService.GetCachedLogoPath(emailAddress), SenderLogoRender.ListAvatarDip);
-        if (info is null)
-            return null!;
-
-        var wantsBadge = parameter is string p && p == "badge";
-        return info.Fill != wantsBadge ? info.Source : null!;
-    }
-
-    public object ConvertBack(object value, Type targetType, object parameter, string language) =>
-        throw new NotSupportedException();
-}
-
-// Side length (DIPs) for the "badge" layer's Image; irrelevant when the logo fills the circle.
-public sealed class SenderLogoBadgeSizeConverter : IValueConverter
-{
-    public object Convert(object value, Type targetType, object parameter, string language)
-    {
-        if (value is not string emailAddress || string.IsNullOrWhiteSpace(emailAddress))
-            return 28d;
-
-        var senderLogoService = App.Services.GetRequiredService<ISenderLogoService>();
-        var info = SenderLogoRender.For(senderLogoService.GetCachedLogoPath(emailAddress), SenderLogoRender.ListAvatarDip);
-        return info?.BadgeDip ?? 28d;
+        return SenderLogoRender.For(senderLogoService.GetCachedLogoPath(emailAddress), SenderLogoRender.ListAvatarDip)?.Source!;
     }
 
     public object ConvertBack(object value, Type targetType, object parameter, string language) =>

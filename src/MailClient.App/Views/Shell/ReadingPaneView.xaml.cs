@@ -58,15 +58,9 @@ public sealed partial class ReadingPaneView : UserControl
 
     private void ApplySenderLogo(SenderLogoRender.Info? info)
     {
-        // Same two-layer scheme as the message list rows -- see SenderLogoRender.
-        SenderLogoBrush.ImageSource = info is { Fill: true } ? info.Source : null;
-        SenderLogoBadge.Source = info is { Fill: false } ? info.Source : null;
-
-        // Smaller than the list's cap: a square icon's corners must stay inside the 36 DIP circle.
-        var badgeSize = info is { Fill: false } ? Math.Min(info.BadgeDip, 24) : 24;
-        SenderLogoBadge.Width = badgeSize;
-        SenderLogoBadge.Height = badgeSize;
-
+        // info is null for "no logo" and for "logo too low-resolution to look good" (see
+        // SenderLogoRender); both keep the colored-initial avatar.
+        SenderLogoBrush.ImageSource = info?.Source;
         SenderLogoBacking.Background = info is null ? null : new SolidColorBrush(Colors.White);
     }
 

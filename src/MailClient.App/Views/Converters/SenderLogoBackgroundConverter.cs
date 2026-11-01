@@ -21,7 +21,7 @@ public sealed class SenderLogoBackgroundConverter : IValueConverter
             return null!;
 
         var senderLogoService = App.Services.GetRequiredService<ISenderLogoService>();
-        return senderLogoService.GetCachedLogoPath(emailAddress) is not null
+        return SenderLogoRender.For(senderLogoService.GetCachedLogoPath(emailAddress), SenderLogoRender.ListAvatarDip) is not null
             ? new SolidColorBrush(Colors.White)
             : null!;
     }

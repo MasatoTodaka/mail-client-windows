@@ -84,15 +84,7 @@
                             <Border.Background>
                                 <ImageBrush x:Name="SenderLogoBrush" Stretch="UniformToFill" />
                             </Border.Background>
-                        </Border>
-                        <!-- Small raster logos are drawn here at about native size instead of being
-                             stretched into the circle above (see SenderLogoRender). -->
-                        <Image
-                            x:Name="SenderLogoBadge"
-                            Stretch="Uniform"
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Center" />
-                    </Grid>
+                        </Border>                    </Grid>
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                         <TextBlock Text="{x:Bind ViewModel.SelectedMessage.FromDisplay, Mode=OneWay}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                         <TextBlock Text="{x:Bind ViewModel.SelectedMessage.FromAddress, Mode=OneWay}" Opacity="0.6" FontSize="12" TextTrimming="CharacterEllipsis" />
