@@ -36,16 +36,23 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Margin="8,8,20,14" Spacing="14">
-            <TextBlock
-                Text="{x:Bind ViewModel.FolderDisplayName, Mode=OneWay}"
-                FontSize="26"
-                FontWeight="Bold"
-                Visibility="{x:Bind FolderHeaderVisibility(SearchViewModel.IsSearchActive), Mode=OneWay}" />
-            <TextBlock
-                Text="検索結果"
-                FontSize="26"
-                FontWeight="Bold"
-                Visibility="{x:Bind SearchViewModel.IsSearchActive, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock
+                    Text="{x:Bind ViewModel.FolderDisplayName, Mode=OneWay}"
+                    FontSize="26"
+                    FontWeight="Bold"
+                    Visibility="{x:Bind FolderHeaderVisibility(SearchViewModel.IsSearchActive), Mode=OneWay}" />
+                <TextBlock
+                    Text="検索結果"
+                    FontSize="26"
+                    FontWeight="Bold"
+                    Visibility="{x:Bind SearchViewModel.IsSearchActive, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
+                <ProgressRing Grid.Column="1" IsActive="{x:Bind ViewModel.IsBusy, Mode=OneWay}" Width="18" Height="18" VerticalAlignment="Center" />
+            </Grid>
             <AutoSuggestBox
                 PlaceholderText="すべてのフォルダを検索"
                 QueryIcon="Find"
@@ -62,7 +69,6 @@
                 Foreground="{ThemeResource SystemFillColorCriticalBrush}"
                 TextWrapping="Wrap"
                 Visibility="{x:Bind SearchViewModel.ErrorMessage, Mode=OneWay, Converter={StaticResource StringToVisibilityConverter}}" />
-            <ProgressRing IsActive="{x:Bind ViewModel.IsBusy, Mode=OneWay}" HorizontalAlignment="Left" Width="16" Height="16" />
         </StackPanel>
 
         <ListView
@@ -109,28 +115,32 @@
                                     <ImageBrush Stretch="UniformToFill" ImageSource="{x:Bind FromAddress, Converter={StaticResource SenderLogoImageConverter}}" />
                                 </Border.Background>
                             </Border>
+                            <!-- Unread marker on the avatar corner. -->
+                            <Ellipse
+                                Width="12"
+                                Height="12"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Top"
+                                Margin="0,-4,-4,0"
+                                Fill="{ThemeResource AccentBrush}"
+                                Stroke="{ThemeResource SurfaceBrush}"
+                                StrokeThickness="2"
+                                Visibility="{x:Bind IsRead, Converter={StaticResource InverseBoolToVisibilityConverter}, Mode=OneWay}" />
                         </Grid>
 
                         <StackPanel Grid.Column="1" Spacing="3">
                             <Grid ColumnSpacing="6">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="14" />
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <Ellipse
-                                    Grid.Column="0"
-                                    Width="8"
-                                    Height="8"
-                                    Fill="{ThemeResource AccentBrush}"
-                                    Visibility="{x:Bind IsRead, Converter={StaticResource InverseBoolToVisibilityConverter}, Mode=OneWay}" />
                                 <TextBlock
-                                    Grid.Column="1"
+                                    Grid.Column="0"
                                     Text="{x:Bind FromDisplay}"
                                     FontSize="14.5"
                                     FontWeight="{x:Bind IsRead, Converter={StaticResource BoolToFontWeightConverter}, Mode=OneWay}"
                                     TextTrimming="CharacterEllipsis" />
-                                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                                     <FontIcon
                                         Glyph="&#xE129;"
                                         FontSize="12"
