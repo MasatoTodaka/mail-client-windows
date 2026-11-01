@@ -16,11 +16,11 @@
                     <SolidColorBrush x:Key="SurfaceStrokeBrush" Color="#E6E0D6" />
                     <SolidColorBrush x:Key="TextPrimaryBrush" Color="#24211C" />
                     <SolidColorBrush x:Key="TextSecondaryBrush" Color="#6B645A" />
-                    <SolidColorBrush x:Key="AccentBrush" Color="#2F7D5B" />
+                    <SolidColorBrush x:Key="AccentBrush" Color="#2F5DE0" />
                     <SolidColorBrush x:Key="OnAccentBrush" Color="#FFFFFF" />
-                    <SolidColorBrush x:Key="AccentSoftBrush" Color="#E8F3EC" />
-                    <SolidColorBrush x:Key="AccentSoftHoverBrush" Color="#DDEBE2" />
-                    <SolidColorBrush x:Key="OnAccentSoftBrush" Color="#1F5C42" />
+                    <SolidColorBrush x:Key="AccentSoftBrush" Color="#E6ECFC" />
+                    <SolidColorBrush x:Key="AccentSoftHoverBrush" Color="#DAE2FA" />
+                    <SolidColorBrush x:Key="OnAccentSoftBrush" Color="#1E3FA8" />
                     <SolidColorBrush x:Key="HoverBrush" Color="#0F000000" />
                     <SolidColorBrush x:Key="InputBrush" Color="#FFFFFF" />
                     <SolidColorBrush x:Key="BadgeBrush" Color="#C2410C" />
@@ -41,11 +41,11 @@
                     <SolidColorBrush x:Key="SurfaceStrokeBrush" Color="#302D28" />
                     <SolidColorBrush x:Key="TextPrimaryBrush" Color="#ECE8E1" />
                     <SolidColorBrush x:Key="TextSecondaryBrush" Color="#A39B8E" />
-                    <SolidColorBrush x:Key="AccentBrush" Color="#5DBB8A" />
-                    <SolidColorBrush x:Key="OnAccentBrush" Color="#0F2A1D" />
-                    <SolidColorBrush x:Key="AccentSoftBrush" Color="#22362B" />
-                    <SolidColorBrush x:Key="AccentSoftHoverBrush" Color="#2A4235" />
-                    <SolidColorBrush x:Key="OnAccentSoftBrush" Color="#A8E0C3" />
+                    <SolidColorBrush x:Key="AccentBrush" Color="#7D9BFF" />
+                    <SolidColorBrush x:Key="OnAccentBrush" Color="#0E1530" />
+                    <SolidColorBrush x:Key="AccentSoftBrush" Color="#1E2745" />
+                    <SolidColorBrush x:Key="AccentSoftHoverBrush" Color="#26325A" />
+                    <SolidColorBrush x:Key="OnAccentSoftBrush" Color="#BCCBFF" />
                     <SolidColorBrush x:Key="HoverBrush" Color="#14FFFFFF" />
                     <SolidColorBrush x:Key="InputBrush" Color="#26231F" />
                     <SolidColorBrush x:Key="BadgeBrush" Color="#F08A5D" />
@@ -71,14 +71,14 @@
             <FontFamily x:Key="AppFontFamily">ms-appx:///Assets/Fonts/Inter.ttf#Inter, ms-appx:///Assets/Fonts/NotoSansJP.ttf#Noto Sans JP, Segoe UI Variable, Yu Gothic UI</FontFamily>
             <FontFamily x:Key="ContentControlThemeFontFamily">ms-appx:///Assets/Fonts/Inter.ttf#Inter, ms-appx:///Assets/Fonts/NotoSansJP.ttf#Noto Sans JP, Segoe UI Variable, Yu Gothic UI</FontFamily>
 
-            <!-- Accent: green instead of the system blue, so toggles, radio buttons and focus rings match the app. -->
-            <Color x:Key="SystemAccentColor">#2F7D5B</Color>
-            <Color x:Key="SystemAccentColorDark1">#2A6F51</Color>
-            <Color x:Key="SystemAccentColorDark2">#256046</Color>
-            <Color x:Key="SystemAccentColorDark3">#1F5C42</Color>
-            <Color x:Key="SystemAccentColorLight1">#4FAE80</Color>
-            <Color x:Key="SystemAccentColorLight2">#5DBB8A</Color>
-            <Color x:Key="SystemAccentColorLight3">#A8E0C3</Color>
+            <!-- Accent: cobalt instead of the system blue, so toggles, radio buttons and focus rings match the app. -->
+            <Color x:Key="SystemAccentColor">#2F5DE0</Color>
+            <Color x:Key="SystemAccentColorDark1">#2A52C8</Color>
+            <Color x:Key="SystemAccentColorDark2">#2447B0</Color>
+            <Color x:Key="SystemAccentColorDark3">#1E3FA8</Color>
+            <Color x:Key="SystemAccentColorLight1">#5878E8</Color>
+            <Color x:Key="SystemAccentColorLight2">#7D9BFF</Color>
+            <Color x:Key="SystemAccentColorLight3">#BCCBFF</Color>
 
             <!-- The default list selection draws a thin accent bar; the soft filled highlight replaces it. -->
             <x:Boolean x:Key="ListViewItemSelectionIndicatorVisualEnabled">False</x:Boolean>

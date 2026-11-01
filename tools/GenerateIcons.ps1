@@ -1,4 +1,4 @@
-# Regenerates every app icon asset from the logo's vector definition below (logo "A": a green
+# Regenerates every app icon asset from the logo's vector definition below (logo "A": a cobalt-blue
 # rounded tile with a white envelope). Run from anywhere:  powershell -File tools\GenerateIcons.ps1
 #
 # Drawn with System.Drawing, so it needs nothing beyond Windows PowerShell. Small sizes use a
@@ -12,7 +12,7 @@ Add-Type -AssemblyName System.Drawing
 $ErrorActionPreference = 'Stop'
 $AssetsDir = (Resolve-Path $AssetsDir).Path
 
-$green = [System.Drawing.Color]::FromArgb(255, 0x2F, 0x7D, 0x5B)
+$tileColor = [System.Drawing.Color]::FromArgb(255, 0x2F, 0x5D, 0xE0)
 $white = [System.Drawing.Color]::White
 
 function New-RoundedRect([float]$x, [float]$y, [float]$w, [float]$h, [float]$r) {
@@ -46,7 +46,7 @@ function Draw-Logo($g, [float]$left, [float]$top, [float]$size, [bool]$bold) {
     }
 
     $tilePath = New-RoundedRect $tile[0] $tile[1] $tile[2] $tile[3] $tile[4]
-    $brush = New-Object System.Drawing.SolidBrush $green
+    $brush = New-Object System.Drawing.SolidBrush $tileColor
     $g.FillPath($brush, $tilePath)
 
     $pen = New-Object System.Drawing.Pen $white, $stroke
